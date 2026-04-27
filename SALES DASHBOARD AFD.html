@@ -1,0 +1,2771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S.D. Pharmaceuticals — Sales Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist@2.35.2/plotly.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#07090f; --s1:#0d1117; --s2:#131920; --s3:#1a2230;
+  --bd:rgba(255,255,255,.06); --bd2:rgba(255,255,255,.11); --bd3:rgba(255,255,255,.18);
+  --teal:#00c49a; --teal2:rgba(0,196,154,.12); --teal3:rgba(0,196,154,.06);
+  --blue:#3b82f6; --amber:#f59e0b; --red:#ef4444; --green:#10b981;
+  --purple:#8b5cf6; --orange:#f97316;
+  --tx:#dde3ee; --tx2:#7a8899; --tx3:#3d4f60;
+  --ff:'Syne',sans-serif; --fm:'DM Mono',monospace;
+  --r:8px; --r2:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:var(--fm);font-size:13px;min-height:100vh}
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(7,9,15,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);height:52px;display:flex;align-items:center;gap:12px;padding:0 20px}
+.topbar .logo{font-family:var(--ff);font-weight:800;font-size:15px;color:var(--tx);letter-spacing:-.3px;white-space:nowrap}
+.topbar .logo span{color:var(--teal)}
+.pill{background:rgba(0,196,154,.15);color:var(--teal);font-family:var(--fm);font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid rgba(0,196,154,.25);white-space:nowrap}
+.tb-badges{display:flex;gap:6px;align-items:center;margin-left:4px;flex-wrap:wrap}
+.badge{font-family:var(--fm);font-size:10px;padding:2px 8px;border-radius:4px;white-space:nowrap}
+.badge-red{background:rgba(239,68,68,.15);color:#fca5a5}
+.badge-amber{background:rgba(245,158,11,.15);color:#fcd34d}
+.badge-green{background:rgba(16,185,129,.15);color:#6ee7b7}
+.badge-blue{background:rgba(59,130,246,.15);color:#93c5fd}
+.badge-orange{background:rgba(249,115,22,.15);color:#fdba74}
+.badge-gray{background:rgba(255,255,255,.06);color:#7a8899}
+.badge-teal{background:rgba(0,196,154,.15);color:#5eead4}
+.badge-purple{background:rgba(139,92,246,.15);color:#c4b5fd}
+.topbar .spacer{flex:1}
+.btn{background:var(--teal2);border:1px solid rgba(0,196,154,.3);color:var(--teal);font-family:var(--ff);font-size:12px;font-weight:600;padding:6px 14px;border-radius:6px;cursor:pointer;transition:all .15s}
+.btn:hover{background:rgba(0,196,154,.2)}
+/* NAV */
+.nav{background:var(--s1);border-bottom:1px solid var(--bd);display:flex;gap:0;padding:0 20px;overflow-x:auto}
+.nav-tab{font-family:var(--ff);font-size:12px;font-weight:600;color:var(--tx2);padding:12px 16px;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.nav-tab:hover{color:var(--tx)}
+.nav-tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+/* PAGES */
+.page{display:none;padding:20px}
+.page.on{display:block}
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px;margin-bottom:20px}
+.kpi{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r2);padding:14px 16px;position:relative;overflow:hidden}
+.kpi-accent{position:absolute;top:0;left:0;width:3px;height:100%;border-radius:2px 0 0 2px}
+.kpi-label{font-family:var(--ff);font-size:11px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.kpi-value{font-family:var(--ff);font-size:22px;font-weight:700;color:var(--tx);line-height:1.1;margin-bottom:4px}
+.kpi-sub{font-family:var(--fm);font-size:10px;color:var(--tx2)}
+.kpi-sub.pos{color:var(--green)}
+.kpi-sub.neg{color:var(--red)}
+/* CHART CARDS */
+.chart-card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r2);padding:16px;min-width:0;overflow:hidden}
+.chart-title{font-family:var(--ff);font-size:13px;font-weight:700;color:var(--tx);margin-bottom:12px}
+.cg-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.cg-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.cg-1{margin-bottom:12px}
+/* FILTER BAR */
+.filter-bar{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r2);padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.filter-bar label{font-size:10px;color:var(--tx2);font-family:var(--ff);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.filter-bar select{background:var(--s2);border:1px solid var(--bd2);color:var(--tx);font-family:var(--fm);font-size:11px;padding:0 8px;height:32px;border-radius:6px;outline:none}
+.filter-bar select:focus{border-color:var(--teal)}
+.filter-bar input[type=date]{background:var(--s2);border:1px solid var(--bd2);color:var(--tx);font-family:var(--fm);font-size:11px;padding:0 8px;height:32px;border-radius:6px;outline:none}
+.filter-bar input[type=date]:focus{border-color:var(--teal)}
+/* TABLES */
+.tbl-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse}
+th{background:var(--s2);font-family:var(--ff);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--tx2);padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--bd2)}
+td{font-family:var(--fm);font-size:11px;color:var(--tx);padding:8px 12px;border-bottom:1px solid var(--bd);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.ret-row td{color:#fca5a5}
+/* RISK CARDS */
+.risk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:20px}
+.risk-card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r2);padding:14px}
+.risk-card-hd{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.risk-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.risk-title{font-family:var(--ff);font-size:12px;font-weight:700;color:var(--tx)}
+.risk-sub{font-family:var(--fm);font-size:10px;color:var(--tx2);margin-top:1px}
+.risk-items{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto}
+.risk-item{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--bd);font-family:var(--fm);font-size:10px}
+.risk-item:last-child{border-bottom:none}
+.risk-item .ri-name{color:var(--tx2);max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.risk-item .ri-val{color:var(--tx);font-weight:500}
+/* SECTION TITLE */
+.sec-title{font-family:var(--ff);font-size:13px;font-weight:700;color:var(--tx);margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+/* UPLOAD SCREEN */
+#upload-screen{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px}
+.upload-box{background:var(--s1);border:1px solid var(--bd2);border-radius:16px;padding:40px;max-width:520px;width:90%}
+.upload-box h2{font-family:var(--ff);font-size:20px;font-weight:800;color:var(--tx);margin-bottom:6px}
+.upload-box p{font-family:var(--fm);font-size:11px;color:var(--tx2);margin-bottom:24px;line-height:1.6}
+.upload-slots{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.upload-slot{background:var(--s2);border:1px dashed var(--bd2);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s}
+.upload-slot:hover{border-color:var(--teal)}
+.upload-slot.loaded{border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.05)}
+.upload-slot .slot-icon{font-size:18px;width:32px;text-align:center}
+.upload-slot .slot-info .slot-label{font-family:var(--ff);font-size:12px;font-weight:700;color:var(--tx)}
+.upload-slot .slot-info .slot-status{font-family:var(--fm);font-size:10px;color:var(--tx2);margin-top:2px}
+.upload-slot.loaded .slot-status{color:var(--green)}
+input[type=file]{display:none}
+.launch-btn{width:100%;background:var(--teal);color:#000;font-family:var(--ff);font-size:13px;font-weight:800;padding:12px;border:none;border-radius:8px;cursor:pointer;transition:opacity .15s}
+.launch-btn:disabled{opacity:.35;cursor:not-allowed}
+.launch-btn:not(:disabled):hover{opacity:.9}
+/* RECEIVABLES SECTIONS */
+.ar-section{margin-bottom:16px}
+.ar-section-hd{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r) var(--r) 0 0;border:1px solid var(--bd2)}
+.ar-section-hd .ars-label{font-family:var(--ff);font-size:12px;font-weight:700}
+.ar-section-hd .ars-count{font-family:var(--fm);font-size:10px;color:var(--tx2)}
+.ar-section-hd .ars-total{font-family:var(--ff);font-size:14px;font-weight:700;margin-left:auto}
+.ar-section-body{border:1px solid var(--bd2);border-top:none;border-radius:0 0 var(--r) var(--r);overflow:hidden}
+.or-cleared{opacity:.4}
+/* INV SPLIT */
+.inv-split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.inv-panel{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r2);padding:14px}
+.inv-panel-title{font-family:var(--ff);font-size:12px;font-weight:700;color:var(--tx);margin-bottom:12px}
+.bucket-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--bd)}
+.bucket-row:last-child{border-bottom:none}
+.bucket-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.bucket-label{font-family:var(--fm);font-size:11px;color:var(--tx2);flex:1}
+.bucket-val{font-family:var(--ff);font-size:12px;font-weight:700;color:var(--tx)}
+/* SORTABLE TABLE HEADERS */
+th.sortable{cursor:pointer;user-select:none;position:relative;padding-right:22px}
+th.sortable:hover{color:var(--tx);background:var(--s3)}
+th.sortable::after{content:'↕';position:absolute;right:7px;top:50%;transform:translateY(-50%);opacity:.35;font-size:10px}
+th.sort-asc::after{content:'↑';opacity:1;color:var(--teal)}
+th.sort-desc::after{content:'↓';opacity:1;color:var(--teal)}
+th.sort-asc,th.sort-desc{color:var(--teal)}
+/* CHART SORT BUTTON */
+.chart-card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.chart-card-hd .chart-title{margin-bottom:0}
+.sort-btn{background:rgba(255,255,255,.05);border:1px solid var(--bd2);color:var(--tx2);font-family:var(--fm);font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.sort-btn:hover{border-color:var(--teal);color:var(--teal)}
+.sort-btn.active{border-color:var(--teal);color:var(--teal);background:var(--teal2)}
+/* MSR ANALYTICS */
+.msr-abm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:16px}
+.msr-abm-card{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r2);padding:14px}
+.msr-abm-name{font-family:var(--ff);font-size:12px;font-weight:700;color:var(--tx);margin-bottom:4px}
+.msr-abm-meta{font-family:var(--fm);font-size:10px;color:var(--tx2);margin-bottom:8px}
+.msr-abm-val{font-family:var(--ff);font-size:18px;font-weight:700;color:var(--teal)}
+.msr-abm-sub{font-family:var(--fm);font-size:10px;color:var(--tx2);margin-top:2px}
+.unassigned-banner{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--r2);padding:14px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px}
+.unassigned-icon{font-size:18px;flex-shrink:0;margin-top:2px}
+.unassigned-body{flex:1}
+.unassigned-title{font-family:var(--ff);font-size:12px;font-weight:700;color:var(--amber);margin-bottom:6px}
+.unassigned-list{font-family:var(--fm);font-size:10px;color:var(--tx2);line-height:1.7}
+/* LOADING SCREEN */
+#loading-screen{position:fixed;inset:0;background:var(--bg);z-index:210;display:none;align-items:center;justify-content:center;flex-direction:column;gap:20px}
+.loading-box{background:var(--s1);border:1px solid var(--bd2);border-radius:16px;padding:40px;max-width:440px;width:90%;text-align:center}
+.loading-box h2{font-family:var(--ff);font-size:18px;font-weight:800;color:var(--tx);margin-bottom:8px}
+.loading-box p{font-family:var(--fm);font-size:11px;color:var(--tx2);margin-bottom:24px;line-height:1.6}
+.loading-steps{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;text-align:left}
+.loading-step{display:flex;align-items:center;gap:10px;font-family:var(--fm);font-size:11px;color:var(--tx2);padding:8px 12px;border-radius:6px;background:var(--s2);border:1px solid var(--bd);transition:all .2s}
+.loading-step.done{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05);color:var(--green)}
+.loading-step.active{border-color:rgba(0,196,154,.3);background:var(--teal3);color:var(--teal)}
+.loading-step.error{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.05);color:#fca5a5}
+.loading-step .step-icon{font-size:14px;width:20px;text-align:center;flex-shrink:0}
+.loading-progress{height:3px;background:var(--s3);border-radius:2px;overflow:hidden;margin-bottom:16px}
+.loading-progress-bar{height:100%;background:var(--teal);border-radius:2px;transition:width .4s ease;width:0%}
+.loading-error-msg{font-family:var(--fm);font-size:10px;color:#fca5a5;margin-bottom:12px;display:none;text-align:left;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:6px;padding:8px 12px}
+.loading-fallback-btn{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--bd2);color:var(--tx2);font-family:var(--ff);font-size:12px;font-weight:600;padding:10px;border-radius:8px;cursor:pointer;transition:all .15s;display:none}
+.loading-fallback-btn:hover{border-color:var(--teal);color:var(--teal)}
+/* UPLOAD SCREEN — manual fallback mode */
+.upload-mode-banner{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:10px 14px;margin-bottom:20px;font-family:var(--fm);font-size:10px;color:#93c5fd;display:flex;align-items:center;gap:8px}
+/* CHOICE SCREEN */
+#choice-screen{position:fixed;inset:0;background:var(--bg);z-index:220;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px}
+.choice-box{background:var(--s1);border:1px solid var(--bd2);border-radius:16px;padding:40px;max-width:480px;width:90%;text-align:center}
+.choice-box h2{font-family:var(--ff);font-size:22px;font-weight:800;color:var(--tx);margin-bottom:8px}
+.choice-box .choice-sub{font-family:var(--fm);font-size:11px;color:var(--tx2);margin-bottom:32px;line-height:1.6}
+.choice-btns{display:flex;flex-direction:column;gap:12px}
+.choice-btn{width:100%;display:flex;align-items:center;gap:16px;padding:16px 20px;border-radius:10px;cursor:pointer;transition:all .18s;text-align:left;border:1px solid var(--bd2);background:var(--s2)}
+.choice-btn:hover{border-color:var(--teal);background:var(--teal3)}
+.choice-btn .cb-icon{font-size:24px;width:36px;text-align:center;flex-shrink:0}
+.choice-btn .cb-body .cb-label{font-family:var(--ff);font-size:13px;font-weight:700;color:var(--tx);margin-bottom:3px}
+.choice-btn .cb-body .cb-desc{font-family:var(--fm);font-size:10px;color:var(--tx2);line-height:1.5}
+.choice-btn.primary{border-color:rgba(0,196,154,.3);background:rgba(0,196,154,.06)}
+.choice-btn.primary:hover{background:rgba(0,196,154,.12)}
+.choice-divider{display:flex;align-items:center;gap:12px;font-family:var(--fm);font-size:10px;color:var(--tx3)}
+.choice-divider::before,.choice-divider::after{content:'';flex:1;height:1px;background:var(--bd)}
+/* EXPORT BUTTON */
+.exp-btn{background:rgba(255,255,255,.04);border:1px solid var(--bd2);color:var(--tx2);font-family:var(--fm);font-size:10px;padding:3px 9px;border-radius:5px;cursor:pointer;transition:all .15s;white-space:nowrap;position:relative}
+.exp-btn:hover{border-color:rgba(59,130,246,.5);color:var(--blue)}
+.exp-menu{position:absolute;top:calc(100% + 5px);right:0;background:var(--s2);border:1px solid var(--bd2);border-radius:8px;min-width:140px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.4);display:none;flex-direction:column;overflow:hidden}
+.exp-menu.open{display:flex}
+.exp-menu-item{font-family:var(--fm);font-size:11px;color:var(--tx);padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;transition:background .1s}
+.exp-menu-item:hover{background:var(--s3);color:var(--teal)}
+.exp-menu-item .emi-icon{font-size:13px;width:16px;text-align:center}
+.exp-menu-item.disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
+/* EXPORT: page-level export bar (shown above each page's content) */
+.page-export-bar{display:flex;justify-content:flex-end;margin-bottom:10px;gap:8px}
+/* RESPONSIVE */
+@media(max-width:900px){.cg-2,.cg-3,.inv-split{grid-template-columns:1fr}.tb-badges{display:none}}
+@media(max-width:640px){.page{padding:12px}.kpi-grid{grid-template-columns:1fr 1fr}.kpi-value{font-size:18px}}
+@media(max-width:400px){.kpi-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- CHOICE SCREEN -->
+<div id="choice-screen">
+  <div class="choice-box">
+    <h2>SD<span style="color:var(--teal)">Pharma</span> Dashboard</h2>
+    <p class="choice-sub">How would you like to load your SwilERP data?</p>
+    <div class="choice-btns">
+      <button class="choice-btn primary" onclick="startAutoFetch()">
+        <div class="cb-icon">🔄</div>
+        <div class="cb-body">
+          <div class="cb-label">Auto-Fetch from GitHub</div>
+          <div class="cb-desc">Pulls latest files directly from your GitHub repo.<br>No upload needed — data is always current.</div>
+        </div>
+      </button>
+      <div class="choice-divider">or</div>
+      <button class="choice-btn" onclick="startManualUpload()">
+        <div class="cb-icon">📁</div>
+        <div class="cb-body">
+          <div class="cb-label">Upload Files Manually</div>
+          <div class="cb-desc">Upload XLS exports directly from your computer.<br>Sales, Inventory, Outstanding + optional MSR.</div>
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING SCREEN (auto-fetch from GitHub) -->
+<div id="loading-screen">
+  <div class="loading-box">
+    <h2>SD<span style="color:var(--teal)">Pharma</span> Dashboard</h2>
+    <p>Fetching latest data from GitHub…</p>
+    <div class="loading-progress"><div class="loading-progress-bar" id="load-bar"></div></div>
+    <div class="loading-steps" id="loading-steps">
+      <div class="loading-step" id="ls-sales"><span class="step-icon">📊</span>Sales Register</div>
+      <div class="loading-step" id="ls-inv"><span class="step-icon">📦</span>Inventory / Stock Register</div>
+      <div class="loading-step" id="ls-out"><span class="step-icon">💰</span>Outstanding / Receivables</div>
+      <div class="loading-step" id="ls-msr"><span class="step-icon">👥</span>MSR Master</div>
+    </div>
+    <div class="loading-error-msg" id="load-error-msg"></div>
+    <button class="loading-fallback-btn" id="load-fallback-btn" onclick="showUploadFallback()">
+      ↑ Upload files manually instead
+    </button>
+    <button class="loading-fallback-btn" id="load-back-btn" style="margin-top:6px" onclick="showChoiceScreen()">
+      ← Back to start
+    </button>
+  </div>
+</div>
+
+<!-- UPLOAD SCREEN (manual upload) -->
+<div id="upload-screen" style="display:none">
+  <div class="upload-box">
+    <h2>S.D. Pharma <span style="color:var(--teal)">Sales</span> Dashboard</h2>
+    <div class="upload-mode-banner">
+      📁 Upload your SwilERP XLS exports below, then click Launch.
+    </div>
+    <div class="upload-slots">
+      <div class="upload-slot" id="slot-sales" onclick="document.getElementById('fi-sales').click()">
+        <input type="file" id="fi-sales" accept=".xls,.xlsx" onchange="loadFile('sales',this)">
+        <div class="slot-icon">📊</div>
+        <div class="slot-info">
+          <div class="slot-label">Sales Register</div>
+          <div class="slot-status" id="st-sales">Click to upload XLS file</div>
+        </div>
+      </div>
+      <div class="upload-slot" id="slot-inv" onclick="document.getElementById('fi-inv').click()">
+        <input type="file" id="fi-inv" accept=".xls,.xlsx" onchange="loadFile('inv',this)">
+        <div class="slot-icon">📦</div>
+        <div class="slot-info">
+          <div class="slot-label">Inventory / Stock Register</div>
+          <div class="slot-status" id="st-inv">Click to upload XLS file</div>
+        </div>
+      </div>
+      <div class="upload-slot" id="slot-out" onclick="document.getElementById('fi-out').click()">
+        <input type="file" id="fi-out" accept=".xls,.xlsx" onchange="loadFile('out',this)">
+        <div class="slot-icon">💰</div>
+        <div class="slot-info">
+          <div class="slot-label">Outstanding / Receivables</div>
+          <div class="slot-status" id="st-out">Click to upload XLS file</div>
+        </div>
+      </div>
+      <div class="upload-slot" id="slot-msr" onclick="document.getElementById('fi-msr').click()">
+        <input type="file" id="fi-msr" accept=".xls,.xlsx" onchange="loadFile('msr',this)">
+        <div class="slot-icon">👥</div>
+        <div class="slot-info">
+          <div class="slot-label">MSR Master <span style="color:var(--tx3);font-weight:400">(Optional)</span></div>
+          <div class="slot-status" id="st-msr">Click to upload XLSX file</div>
+        </div>
+      </div>
+    </div>
+    <button class="launch-btn" id="launch-btn" disabled onclick="launch()">Launch Dashboard →</button>
+    <button style="width:100%;background:transparent;border:none;color:var(--tx3);font-family:var(--fm);font-size:11px;padding:10px;cursor:pointer;margin-top:4px" onclick="showChoiceScreen()">← Back</button>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar" id="topbar" style="display:none">
+  <div class="logo">SD<span>Pharma</span></div>
+  <div class="pill">Sales View</div>
+  <div class="tb-badges" id="tb-badges"></div>
+  <div class="spacer"></div>
+  <button class="btn" onclick="resetAll()">⇄ New Data</button>
+</div>
+
+<!-- NAV -->
+<nav class="nav" id="nav" style="display:none">
+  <div class="nav-tab active" onclick="gotoPage('pg-overview',this)">Overview</div>
+  <div class="nav-tab" onclick="gotoPage('pg-sales',this)">Sales</div>
+  <div class="nav-tab" onclick="gotoPage('pg-products',this)">Products</div>
+  <div class="nav-tab" onclick="gotoPage('pg-inventory',this)">Inventory</div>
+  <div class="nav-tab" onclick="gotoPage('pg-receivables',this)">Receivables</div>
+  <div class="nav-tab" id="nav-msr" style="display:none" onclick="gotoPage('pg-msr',this)">MSR Analytics</div>
+</nav>
+
+<!-- GLOBAL FILTER BAR (Overview · Sales · Products) -->
+<div id="global-filter-bar" style="display:none">
+  <div class="filter-bar" style="border-radius:0;border-left:none;border-right:none;border-top:none;margin-bottom:0;background:var(--s2)">
+    <span style="font-family:var(--ff);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap">Global Filter</span>
+    <label>From</label><input type="date" id="f-from">
+    <label>To</label><input type="date" id="f-to">
+    <label>Customer</label><select id="f-cust"><option value="">All</option></select>
+    <label>Station</label><select id="f-station"><option value="">All</option></select>
+    <label>Product</label><select id="f-prod"><option value="">All</option></select>
+    <button class="btn" onclick="applyFilters()">Apply</button>
+    <button class="btn" style="background:rgba(255,255,255,.05);border-color:var(--bd2);color:var(--tx2)" onclick="resetFilters()">Reset</button>
+    <span id="filter-badge" style="display:none" class="badge badge-amber"></span>
+  </div>
+</div>
+
+<!-- OVERVIEW -->
+<div class="page" id="pg-overview">
+  <div class="page-export-bar">
+    <div style="position:relative;display:inline-block">
+      <button class="exp-btn" onclick="toggleExpMenu('exp-overview')">⬇ Export Page ▾</button>
+      <div class="exp-menu" id="exp-overview">
+        <div class="exp-menu-item" onclick="exportPagePng('pg-overview','Overview');closeExpMenus()"><span class="emi-icon">🖼</span>Export as PNG</div>
+        <div class="exp-menu-item" onclick="exportPagePpt('pg-overview','Overview');closeExpMenus()"><span class="emi-icon">📊</span>Export as PPT</div>
+        <div class="exp-menu-item disabled"><span class="emi-icon">📋</span>Export as Excel</div>
+      </div>
+    </div>
+  </div>
+  <div class="kpi-grid" id="kpi-overview"></div>
+  <div class="risk-grid" id="risk-grid"></div>
+  <div class="cg-2">
+    <div class="chart-card"><div class="chart-card-hd"><div class="chart-title">Monthly Gross / Returns / Net Sales</div><div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-ov-monthly')">⬇ ▾</button><div class="exp-menu" id="exp-ch-ov-monthly"><div class="exp-menu-item" onclick="exportChartPng('ch-ov-monthly','Monthly_Sales');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-ov-monthly','Monthly Sales');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div></div><div id="ch-ov-monthly" style="height:240px"></div></div>
+    <div class="chart-card">
+      <div class="chart-card-hd">
+        <div class="chart-title">Top 10 Customers — Net Sales</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="sort-btn" id="sb-ov-topcust" onclick="toggleChartSort('ov-topcust')">↓ Desc</button>
+          <div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-ov-topcust')">⬇ ▾</button><div class="exp-menu" id="exp-ch-ov-topcust"><div class="exp-menu-item" onclick="exportChartPng('ch-ov-topcust','Top_Customers');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-ov-topcust','Top Customers');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div>
+        </div>
+      </div>
+      <div id="ch-ov-topcust" style="height:240px"></div>
+    </div>
+  </div>
+  <div class="cg-2">
+    <div class="chart-card"><div class="chart-card-hd"><div class="chart-title">Sales by Territory / Station</div><div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-ov-stations')">⬇ ▾</button><div class="exp-menu" id="exp-ch-ov-stations"><div class="exp-menu-item" onclick="exportChartPng('ch-ov-stations','Sales_by_Station');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-ov-stations','Sales by Station');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div></div><div id="ch-ov-stations" style="height:240px"></div></div>
+    <div class="chart-card"><div class="chart-card-hd"><div class="chart-title">Monthly Net Sales Trend</div><div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-ov-trend')">⬇ ▾</button><div class="exp-menu" id="exp-ch-ov-trend"><div class="exp-menu-item" onclick="exportChartPng('ch-ov-trend','Net_Sales_Trend');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-ov-trend','Net Sales Trend');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div></div><div id="ch-ov-trend" style="height:240px"></div></div>
+  </div>
+</div>
+
+<!-- SALES -->
+<div class="page" id="pg-sales">
+  <div class="page-export-bar">
+    <div style="position:relative;display:inline-block">
+      <button class="exp-btn" onclick="toggleExpMenu('exp-sales-xl')">⬇ Sales Excel ▾</button>
+      <div class="exp-menu" id="exp-sales-xl">
+        <div class="exp-menu-item" onclick="exportTableExcel('sales-ledger','SD_Sales_Register');closeExpMenus()"><span class="emi-icon">📋</span>Export as Excel</div>
+        <div class="exp-menu-item" onclick="exportPagePng('pg-sales','Sales');closeExpMenus()"><span class="emi-icon">🖼</span>Export as PNG</div>
+        <div class="exp-menu-item" onclick="exportPagePpt('pg-sales','Sales');closeExpMenus()"><span class="emi-icon">📊</span>Export as PPT</div>
+      </div>
+    </div>
+  </div>
+  <div class="cg-2">
+    <div class="chart-card"><div class="chart-card-hd"><div class="chart-title">Sales & Returns Trend</div><div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-sa-trend')">⬇ ▾</button><div class="exp-menu" id="exp-ch-sa-trend"><div class="exp-menu-item" onclick="exportChartPng('ch-sa-trend','Sales_Returns_Trend');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-sa-trend','Sales & Returns Trend');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div></div><div id="ch-sa-trend" style="height:230px"></div></div>
+    <div class="chart-card">
+      <div class="chart-card-hd">
+        <div class="chart-title">Top 10 Customers (Filtered)</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="sort-btn" id="sb-sa-topcust" onclick="toggleChartSort('sa-topcust')">↓ Desc</button>
+          <div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-sa-topcust')">⬇ ▾</button><div class="exp-menu" id="exp-ch-sa-topcust"><div class="exp-menu-item" onclick="exportChartPng('ch-sa-topcust','Top_Customers_Sales');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-sa-topcust','Top Customers Sales');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div>
+        </div>
+      </div>
+      <div id="ch-sa-topcust" style="height:230px"></div>
+    </div>
+  </div>
+  <div class="sec-title">Sales Ledger <div style="margin-left:auto;position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-tbl-sales')">⬇ Excel ▾</button><div class="exp-menu" id="exp-tbl-sales"><div class="exp-menu-item" onclick="exportTableExcel('sales-ledger','SD_Sales_Register');closeExpMenus()"><span class="emi-icon">📋</span>Export as Excel</div></div></div></div>
+  <div class="tbl-wrap" id="sales-ledger-wrap"></div>
+</div>
+
+<!-- PRODUCTS -->
+<div class="page" id="pg-products">
+  <div class="page-export-bar">
+    <div style="position:relative;display:inline-block">
+      <button class="exp-btn" onclick="toggleExpMenu('exp-prod-pg')">⬇ Export Page ▾</button>
+      <div class="exp-menu" id="exp-prod-pg">
+        <div class="exp-menu-item" onclick="exportTableExcel('prod-table','SD_Products_Performance');closeExpMenus()"><span class="emi-icon">📋</span>Export Table as Excel</div>
+        <div class="exp-menu-item" onclick="exportPagePng('pg-products','Products');closeExpMenus()"><span class="emi-icon">🖼</span>Export as PNG</div>
+        <div class="exp-menu-item" onclick="exportPagePpt('pg-products','Products');closeExpMenus()"><span class="emi-icon">📊</span>Export as PPT</div>
+      </div>
+    </div>
+  </div>
+  <div class="cg-2">
+    <div class="chart-card">
+      <div class="chart-card-hd">
+        <div class="chart-title">Top 12 Products — Net Sales</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="sort-btn" id="sb-pr-net" onclick="toggleChartSort('pr-net')">↓ Desc</button>
+          <div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-pr-net')">⬇ ▾</button><div class="exp-menu" id="exp-ch-pr-net"><div class="exp-menu-item" onclick="exportChartPng('ch-pr-net','Top_Products_Net');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-pr-net','Top Products Net Sales');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div>
+        </div>
+      </div>
+      <div id="ch-pr-net" style="height:340px"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-hd">
+        <div class="chart-title">Return Rate % (Products >₹50k Gross)</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="sort-btn" id="sb-pr-ret" onclick="toggleChartSort('pr-ret')">↓ Desc</button>
+          <div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-pr-ret')">⬇ ▾</button><div class="exp-menu" id="exp-ch-pr-ret"><div class="exp-menu-item" onclick="exportChartPng('ch-pr-ret','Return_Rate');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-pr-ret','Return Rate %');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div>
+        </div>
+      </div>
+      <div id="ch-pr-ret" style="height:340px"></div>
+    </div>
+  </div>
+  <div class="cg-2">
+    <div class="chart-card"><div class="chart-card-hd"><div class="chart-title">Monthly Units — Top 5 Products</div><div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-pr-units')">⬇ ▾</button><div class="exp-menu" id="exp-ch-pr-units"><div class="exp-menu-item" onclick="exportChartPng('ch-pr-units','Monthly_Units');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-pr-units','Monthly Units Top 5');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div></div><div id="ch-pr-units" style="height:260px"></div></div>
+    <div class="chart-card">
+      <div class="chart-card-hd">
+        <div class="chart-title">Customer Reach per Product</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="sort-btn" id="sb-pr-reach" onclick="toggleChartSort('pr-reach')">↓ Desc</button>
+          <div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-pr-reach')">⬇ ▾</button><div class="exp-menu" id="exp-ch-pr-reach"><div class="exp-menu-item" onclick="exportChartPng('ch-pr-reach','Customer_Reach');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-pr-reach','Customer Reach');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div>
+        </div>
+      </div>
+      <div id="ch-pr-reach" style="height:260px"></div>
+    </div>
+  </div>
+  <div class="sec-title">Product Performance <div style="margin-left:auto;position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-tbl-prod')">⬇ Excel ▾</button><div class="exp-menu" id="exp-tbl-prod"><div class="exp-menu-item" onclick="exportTableExcel('prod-table','SD_Products_Performance');closeExpMenus()"><span class="emi-icon">📋</span>Export as Excel</div></div></div></div>
+  <div class="tbl-wrap" id="prod-table-wrap"></div>
+</div>
+
+<!-- INVENTORY -->
+<div class="page" id="pg-inventory">
+  <div class="filter-bar" style="margin-bottom:16px">
+    <span style="font-family:var(--ff);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap">Filter Inventory</span>
+    <label>Expiry</label>
+    <select id="if-expiry">
+      <option value="">All</option>
+      <option value="expired">Expired</option>
+      <option value="critical">≤90 days</option>
+      <option value="warning">90–180 days</option>
+      <option value="safe">Safe &gt;180d</option>
+      <option value="nodate">No date</option>
+    </select>
+    <label>Product</label>
+    <select id="if-prod"><option value="">All</option></select>
+    <label>Party</label>
+    <select id="if-party"><option value="">All</option></select>
+    <button class="btn" onclick="applyInvFilters()">Apply</button>
+    <button class="btn" style="background:rgba(255,255,255,.05);border-color:var(--bd2);color:var(--tx2)" onclick="resetInvFilters()">Reset</button>
+    <span id="if-badge" style="display:none" class="badge badge-amber"></span>
+    <div style="margin-left:auto;position:relative;display:inline-block">
+      <button class="exp-btn" onclick="toggleExpMenu('exp-inv-pg')">⬇ Export ▾</button>
+      <div class="exp-menu" id="exp-inv-pg">
+        <div class="exp-menu-item" onclick="exportTableExcel('batch-table','SD_Inventory_Batches');closeExpMenus()"><span class="emi-icon">📋</span>Export Batches as Excel</div>
+        <div class="exp-menu-item" onclick="exportPagePng('pg-inventory','Inventory');closeExpMenus()"><span class="emi-icon">🖼</span>Export as PNG</div>
+        <div class="exp-menu-item" onclick="exportPagePpt('pg-inventory','Inventory');closeExpMenus()"><span class="emi-icon">📊</span>Export as PPT</div>
+      </div>
+    </div>
+  </div>
+  <div class="cg-2">
+    <div class="chart-card"><div class="chart-card-hd"><div class="chart-title">Stock Units by Expiry Bucket</div><div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-inv-expiry')">⬇ ▾</button><div class="exp-menu" id="exp-ch-inv-expiry"><div class="exp-menu-item" onclick="exportChartPng('ch-inv-expiry','Stock_Expiry_Buckets');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-inv-expiry','Stock Expiry Buckets');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div></div><div id="ch-inv-expiry" style="height:230px"></div></div>
+    <div class="chart-card">
+      <div class="chart-card-hd">
+        <div class="chart-title">Top 10 Products by Stock Units</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="sort-btn" id="sb-inv-top" onclick="toggleChartSort('inv-top')">↓ Desc</button>
+          <div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-inv-top')">⬇ ▾</button><div class="exp-menu" id="exp-ch-inv-top"><div class="exp-menu-item" onclick="exportChartPng('ch-inv-top','Top_Stock_Products');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-inv-top','Top Stock Products');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div>
+        </div>
+      </div>
+      <div id="ch-inv-top" style="height:230px"></div>
+    </div>
+  </div>
+  <div class="inv-split" id="inv-split"></div>
+  <div class="sec-title">Batch Register <div style="margin-left:auto;position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-tbl-batch')">⬇ Excel ▾</button><div class="exp-menu" id="exp-tbl-batch"><div class="exp-menu-item" onclick="exportTableExcel('batch-table','SD_Inventory_Batches');closeExpMenus()"><span class="emi-icon">📋</span>Export as Excel</div></div></div></div>
+  <div class="tbl-wrap" id="batch-table-wrap"></div>
+</div>
+
+<!-- RECEIVABLES -->
+<div class="page" id="pg-receivables">
+  <div class="filter-bar" style="margin-bottom:16px">
+    <span style="font-family:var(--ff);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap">Filter Receivables</span>
+    <label>State</label>
+    <select id="rf-state">
+      <option value="">All</option>
+      <option value="normal">Normal</option>
+      <option value="partial">Partial</option>
+      <option value="over_returned">Over-Returned</option>
+      <option value="cleared">Cleared</option>
+    </select>
+    <label>Age</label>
+    <select id="rf-age">
+      <option value="">All</option>
+      <option value="0">0–30 days</option>
+      <option value="31">31–60 days</option>
+      <option value="61">61–90 days</option>
+      <option value="91">91–180 days</option>
+      <option value="181">&gt;180 days</option>
+    </select>
+    <label>Party</label>
+    <select id="rf-party"><option value="">All</option></select>
+    <button class="btn" onclick="applyRecFilters()">Apply</button>
+    <button class="btn" style="background:rgba(255,255,255,.05);border-color:var(--bd2);color:var(--tx2)" onclick="resetRecFilters()">Reset</button>
+    <span id="rf-badge" style="display:none" class="badge badge-amber"></span>
+    <div style="margin-left:auto;position:relative;display:inline-block">
+      <button class="exp-btn" onclick="toggleExpMenu('exp-rec-pg')">⬇ Export ▾</button>
+      <div class="exp-menu" id="exp-rec-pg">
+        <div class="exp-menu-item" onclick="exportReceivablesExcel();closeExpMenus()"><span class="emi-icon">📋</span>Export AR as Excel</div>
+        <div class="exp-menu-item" onclick="exportPagePng('pg-receivables','Receivables');closeExpMenus()"><span class="emi-icon">🖼</span>Export as PNG</div>
+        <div class="exp-menu-item" onclick="exportPagePpt('pg-receivables','Receivables');closeExpMenus()"><span class="emi-icon">📊</span>Export as PPT</div>
+      </div>
+    </div>
+  </div>
+  <div class="cg-2">
+    <div class="chart-card"><div class="chart-card-hd"><div class="chart-title">Aging Breakdown (Adjusted AR)</div><div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-re-aging')">⬇ ▾</button><div class="exp-menu" id="exp-ch-re-aging"><div class="exp-menu-item" onclick="exportChartPng('ch-re-aging','AR_Aging_Breakdown');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-re-aging','AR Aging Breakdown');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div></div><div id="ch-re-aging" style="height:240px"></div></div>
+    <div class="chart-card">
+      <div class="chart-card-hd">
+        <div class="chart-title">Top 10 Parties by Net Due</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="sort-btn" id="sb-re-top" onclick="toggleChartSort('re-top')">↓ Desc</button>
+          <div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-re-top')">⬇ ▾</button><div class="exp-menu" id="exp-ch-re-top"><div class="exp-menu-item" onclick="exportChartPng('ch-re-top','Top_Parties_Net_Due');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-re-top','Top Parties Net Due');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div>
+        </div>
+      </div>
+      <div id="ch-re-top" style="height:240px"></div>
+    </div>
+  </div>
+  <div id="ar-sections"></div>
+</div>
+
+<!-- MSR ANALYTICS -->
+<div class="page" id="pg-msr">
+  <!-- Tab-local filter bar -->
+  <div class="filter-bar" style="margin-bottom:16px">
+    <span style="font-family:var(--ff);font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap">Filter MSR</span>
+    <label>ABM</label>
+    <select id="mf-abm"><option value="">All</option></select>
+    <label>MSR</label>
+    <select id="mf-msr"><option value="">All</option></select>
+    <label>State</label>
+    <select id="mf-state"><option value="">All</option></select>
+    <button class="btn" onclick="applyMsrFilters()">Apply</button>
+    <button class="btn" style="background:rgba(255,255,255,.05);border-color:var(--bd2);color:var(--tx2)" onclick="resetMsrFilters()">Reset</button>
+    <span id="mf-badge" style="display:none" class="badge badge-amber"></span>
+  </div>
+  <!-- KPIs -->
+  <div class="kpi-grid" id="kpi-msr"></div>
+  <div class="page-export-bar" style="margin-top:-8px">
+    <div style="position:relative;display:inline-block">
+      <button class="exp-btn" onclick="toggleExpMenu('exp-msr-pg')">⬇ Export ▾</button>
+      <div class="exp-menu" id="exp-msr-pg">
+        <div class="exp-menu-item" onclick="exportTableExcel('msr-table','SD_MSR_Performance');closeExpMenus()"><span class="emi-icon">📋</span>Export MSR Table as Excel</div>
+        <div class="exp-menu-item" onclick="exportPagePng('pg-msr','MSR_Analytics');closeExpMenus()"><span class="emi-icon">🖼</span>Export as PNG</div>
+        <div class="exp-menu-item" onclick="exportPagePpt('pg-msr','MSR Analytics');closeExpMenus()"><span class="emi-icon">📊</span>Export as PPT</div>
+      </div>
+    </div>
+  </div>
+  <!-- Unassigned banner -->
+  <div id="msr-unassigned-banner"></div>
+  <!-- Section 1: MSR Performance Charts -->
+  <div class="sec-title">📊 MSR Performance</div>
+  <div class="cg-2">
+    <div class="chart-card">
+      <div class="chart-card-hd">
+        <div class="chart-title">Net Sales by MSR</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="sort-btn" id="sb-msr-net" onclick="toggleChartSort('msr-net')">↓ Desc</button>
+          <div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-msr-net')">⬇ ▾</button><div class="exp-menu" id="exp-ch-msr-net"><div class="exp-menu-item" onclick="exportChartPng('ch-msr-net','MSR_Net_Sales');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-msr-net','Net Sales by MSR');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div>
+        </div>
+      </div>
+      <div id="ch-msr-net" style="height:300px"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-hd">
+        <div class="chart-title">Return Rate % by MSR</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="sort-btn" id="sb-msr-ret" onclick="toggleChartSort('msr-ret')">↓ Desc</button>
+          <div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-msr-ret')">⬇ ▾</button><div class="exp-menu" id="exp-ch-msr-ret"><div class="exp-menu-item" onclick="exportChartPng('ch-msr-ret','MSR_Return_Rate');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-msr-ret','Return Rate by MSR');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div>
+        </div>
+      </div>
+      <div id="ch-msr-ret" style="height:300px"></div>
+    </div>
+  </div>
+  <div class="cg-2">
+    <div class="chart-card"><div class="chart-card-hd"><div class="chart-title">Monthly Sales Trend — Top 5 MSRs</div><div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-msr-trend')">⬇ ▾</button><div class="exp-menu" id="exp-ch-msr-trend"><div class="exp-menu-item" onclick="exportChartPng('ch-msr-trend','MSR_Monthly_Trend');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-msr-trend','MSR Monthly Trend');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div></div><div id="ch-msr-trend" style="height:260px"></div></div>
+    <div class="chart-card">
+      <div class="chart-card-hd">
+        <div class="chart-title">Party Count by MSR</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="sort-btn" id="sb-msr-parties" onclick="toggleChartSort('msr-parties')">↓ Desc</button>
+          <div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-msr-parties')">⬇ ▾</button><div class="exp-menu" id="exp-ch-msr-parties"><div class="exp-menu-item" onclick="exportChartPng('ch-msr-parties','MSR_Party_Count');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-msr-parties','Party Count by MSR');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div>
+        </div>
+      </div>
+      <div id="ch-msr-parties" style="height:260px"></div>
+    </div>
+  </div>
+  <!-- Section 2: ABM Territory View -->
+  <div class="sec-title">🏢 ABM Territory Breakdown</div>
+  <div class="cg-2">
+    <div class="chart-card"><div class="chart-card-hd"><div class="chart-title">Net Sales by ABM</div><div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-abm-net')">⬇ ▾</button><div class="exp-menu" id="exp-ch-abm-net"><div class="exp-menu-item" onclick="exportChartPng('ch-abm-net','ABM_Net_Sales');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-abm-net','Net Sales by ABM');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div></div><div id="ch-abm-net" style="height:260px"></div></div>
+    <div class="chart-card"><div class="chart-card-hd"><div class="chart-title">MSR Contribution within ABM Territory</div><div style="position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-ch-abm-stacked')">⬇ ▾</button><div class="exp-menu" id="exp-ch-abm-stacked"><div class="exp-menu-item" onclick="exportChartPng('ch-abm-stacked','ABM_MSR_Contribution');closeExpMenus()"><span class="emi-icon">🖼</span>PNG</div><div class="exp-menu-item" onclick="exportChartPpt('ch-abm-stacked','MSR Contribution by ABM');closeExpMenus()"><span class="emi-icon">📊</span>PPT</div></div></div></div><div id="ch-abm-stacked" style="height:260px"></div></div>
+  </div>
+  <!-- ABM Cards -->
+  <div class="sec-title">ABM Summary</div>
+  <div class="msr-abm-grid" id="abm-cards"></div>
+  <!-- Section 3: MSR Performance Table -->
+  <div class="sec-title">📋 MSR Performance Table <div style="margin-left:auto;position:relative;display:inline-block"><button class="exp-btn" onclick="toggleExpMenu('exp-tbl-msr')">⬇ Excel ▾</button><div class="exp-menu" id="exp-tbl-msr"><div class="exp-menu-item" onclick="exportTableExcel('msr-table','SD_MSR_Performance');closeExpMenus()"><span class="emi-icon">📋</span>Export as Excel</div></div></div></div>
+  <div class="tbl-wrap" id="msr-table-wrap"></div>
+</div>
+
+<script>
+// ─── GITHUB AUTO-FETCH CONFIG ─────────────────────────────────────────────────
+// ⚙️  Edit these four lines with your GitHub raw file URLs.
+// Format: https://raw.githubusercontent.com/USERNAME/REPO/BRANCH/path/to/file.xls
+// Leave GH_FILES.msr as null if you don't have a MSR master file on GitHub.
+const GH_FILES = {
+  sales: 'https://raw.githubusercontent.com/adityagoenka24/afd-hospicare-sales-dashboard/main/sales.xls',
+  inv:   'https://raw.githubusercontent.com/adityagoenka24/afd-hospicare-sales-dashboard/main/inventory.xls',
+  out:   'https://raw.githubusercontent.com/adityagoenka24/afd-hospicare-sales-dashboard/main/outstanding.xls',
+  msr:   'https://raw.githubusercontent.com/adityagoenka24/afd-hospicare-sales-dashboard/main/msr.xlsx'
+  // Set msr to null to skip: msr: null
+};
+
+// ─── AUTO-FETCH ENGINE ────────────────────────────────────────────────────────
+const STEP_LABELS = {
+  sales: 'Sales Register',
+  inv:   'Inventory / Stock Register',
+  out:   'Outstanding / Receivables',
+  msr:   'MSR Master'
+};
+
+function setStep(type, state, text){
+  const el = document.getElementById('ls-'+type);
+  if(!el) return;
+  el.className = 'loading-step ' + state;
+  el.querySelector('.step-icon').textContent =
+    state==='done' ? '✓' : state==='error' ? '✗' : state==='active' ? '⟳' : '○';
+  el.innerHTML = `<span class="step-icon">${el.querySelector('.step-icon').textContent}</span>${text||STEP_LABELS[type]}`;
+}
+
+function setProgress(pct){
+  const bar = document.getElementById('load-bar');
+  if(bar) bar.style.width = pct + '%';
+}
+
+// Shared XLS/XLSX parser — used by both fetch path and FileReader upload path
+function parseWorkbookBuffer(arrayBuffer, type){
+  const wb = XLSX.read(arrayBuffer, {type:'array', cellDates:true});
+  const sh = wb.Sheets[wb.SheetNames[0]];
+  const aoa = XLSX.utils.sheet_to_json(sh, {header:1, defval:''});
+  let hi=0;
+  for(let i=0;i<Math.min(aoa.length,15);i++){
+    if(aoa[i].filter(c=>String(c).trim().length>1).length>=3){hi=i;break}
+  }
+  const headers = aoa[hi].map(c=>String(c).trim());
+  const rows = aoa.slice(hi+1).map(r=>{
+    const o={};
+    headers.forEach((h,j)=>{ o[h]=r[j]===undefined?'':r[j] });
+    return o;
+  }).filter(r=>Object.values(r).some(v=>v!==''&&v!==null&&v!==undefined));
+  rows.forEach(r=>{
+    Object.keys(r).forEach(k=>{
+      if(r[k] instanceof Date){
+        const d=r[k];
+        r[k]=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      }
+    });
+  });
+  return type==='msr' ? rows : applyAlias(rows, type);
+}
+
+async function autoFetch(){
+  document.getElementById('loading-screen').style.display='flex';
+  document.getElementById('upload-screen').style.display='none';
+  document.getElementById('choice-screen').style.display='none';
+  // Always show the back button so user can return to choice screen
+  const backBtn = document.getElementById('load-back-btn');
+  if(backBtn) backBtn.style.display='block';
+
+  // Check if URLs are still placeholders
+  const configured = Object.entries(GH_FILES).some(([,url])=>
+    url && !url.includes('YOUR_USERNAME')
+  );
+  if(!configured){
+    showUploadFallback('GitHub URLs not configured yet — using manual upload.');
+    return;
+  }
+
+  const required = ['sales','inv','out'];
+  let completed = 0;
+  const total = required.length + (GH_FILES.msr ? 1 : 0);
+
+  // Hide MSR step if not configured
+  if(!GH_FILES.msr){
+    const msrStep = document.getElementById('ls-msr');
+    if(msrStep) msrStep.style.display='none';
+  }
+
+    // Fetch helper — no-cache headers + 1 automatic retry on failure
+  async function ghFetch(url){
+    const opts = {
+      cache: 'no-store',   // never use browser cache
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    };
+    // First attempt
+    let resp = await fetch(url + '?t=' + Date.now(), opts);
+    // If GitHub returns 403/429 (rate-limit/token expiry), wait 1.5s and retry once
+    if(!resp.ok && (resp.status===403||resp.status===429||resp.status===503)){
+      await new Promise(r=>setTimeout(r,1500));
+      resp = await fetch(url + '?t=' + Date.now(), opts);
+    }
+    if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return resp.arrayBuffer();
+  }
+
+  // Fetch required files
+  for(const type of required){
+    setStep(type, 'active');
+    try {
+      const url = GH_FILES[type] + '?t=' + Date.now(); // cache-bust
+      const resp = await fetch(url);
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const buf = await resp.arrayBuffer();
+      RAW[type] = parseWorkbookBuffer(buf, type);
+      LOADED[type] = true;
+      completed++;
+      setProgress(Math.round(completed/total*90));
+      setStep(type, 'done', `✓ ${STEP_LABELS[type]} (${RAW[type].length} rows)`);
+    } catch(err){
+      setStep(type, 'error', `✗ ${STEP_LABELS[type]} — ${err.message}`);
+      const errEl = document.getElementById('load-error-msg');
+      errEl.style.display='block';
+      errEl.textContent = `Could not fetch ${STEP_LABELS[type]}: ${err.message}. Check the GitHub URL is correct and the file is publicly accessible.`;
+      document.getElementById('load-fallback-btn').style.display='block';
+      return; // stop — required file failed
+    }
+  }
+
+  // Fetch optional MSR file
+  if(GH_FILES.msr){
+    setStep('msr','active');
+    try {
+      const url = GH_FILES.msr + '?t=' + Date.now();
+      const resp = await fetch(url);
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const buf = await resp.arrayBuffer();
+      RAW.msr = parseWorkbookBuffer(buf, 'msr');
+      LOADED.msr = true;
+      completed++;
+      setProgress(Math.round(completed/total*90));
+      setStep('msr','done',`✓ MSR Master (${RAW.msr.length} rows)`);
+    } catch(err){
+      // MSR is optional — warn but continue
+      setStep('msr','error',`⚠ MSR Master unavailable — continuing without it`);
+      RAW.msr = null; LOADED.msr = false;
+    }
+  }
+
+  setProgress(100);
+  // Small pause so user sees 100% before dashboard appears
+  await new Promise(r=>setTimeout(r,350));
+  document.getElementById('loading-screen').style.display='none';
+  launch();
+}
+
+function showUploadFallback(reason){
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('upload-screen').style.display='flex';
+  if(reason){
+    const banner = document.querySelector('.upload-mode-banner');
+    if(banner) banner.textContent = 'ℹ️ ' + reason;
+  }
+}
+
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const ALIAS = {
+  sales: {
+    Name:         ['Name','Product Name','Item Name','Product'],
+    Customer:     ['Customer','Customer Name','Party'],
+    Station:      ['Station','City','Location','Area'],
+    'Bill No.':   ['Bill No.','Bill No','Invoice No.','Vch No.'],
+    Date:         ['Date','Bill Date','Invoice Date','Vch Date'],
+    Batch:        ['Batch','Batch No.','Batch No','Lot No'],
+    'Qty.':       ['Qty.','Qty','Quantity','Units'],
+    Rate:         ['Rate','Sale Rate','Selling Rate','Unit Price'],
+    'Sales Value':['Sales Value','Amount','Net Amount','Value','Total','Net Value']
+  },
+  inv: {
+    product_name: ['Product Name','Name','Item Name','Product'],
+    batch_no:     ['Batch No.','Batch No','Batch','Lot No'],
+    current_balance:['CurBal','Cur Bal','Current Balance','Balance','Qty','Stock'],
+    expiry:       ['Expiry','Exp.Date','Exp Date','Expiry Date','Exp','Expiry Date']
+  },
+  out: {
+    voucher_no:   ['V.No.','V.No','Vch No.','Voucher No','Bill No.'],
+    date:         ['Date','Bill Date','Vch Date'],
+    party_name:   ['Name of Party','Party Name','Party','Customer','Name'],
+    net_amount:   ['Net Amount','Amount','Net Amt','Balance','Net']
+  }
+};
+
+const SKIP_KW = ['total','subtotal','grand total','powered by','*****','sundry'];
+const isSkip = s => SKIP_KW.some(k => String(s||'').toLowerCase().includes(k));
+
+const RAW = {sales:null, inv:null, out:null, msr:null};
+const D   = {s:[],i:[],o:[]};
+// MSR master data: party→[msrs], msr→[abms], full entries
+let MSR_MAP = {};   // customerName (trimmed) → [{name, share}]  share = 1/count
+let ABM_MAP = {};   // msrName → [{name, share}]  share = 1/abmCount
+let MSR_NAMES = []; // all unique MSR names
+let ABM_NAMES = []; // all unique ABM names
+let MSR_STATES= {}; // msrName → state (from master)
+let _msrEntries = []; // computed: [{msr, abms, state, gross, ret, net, retR, parties, partyList, byMonth}]
+let _abmEntries = []; // computed: [{abm, gross, ret, net, msrs:[{name,net}], parties}]
+let MF = { abm:'', msr:'', state:'' }; // MSR filter state
+let FS    = [];
+const RENDERED = new Set();
+const TODAY = new Date().toISOString().slice(0,10);
+
+// ─── SORT STATE ────────────────────────────────────────────────────────────────
+// Chart sort: key = chart id suffix, value = 'desc'|'asc' (desc = highest at top of hbar)
+const CHART_SORT = {
+  'ov-topcust':'desc','sa-topcust':'desc',
+  'pr-net':'desc','pr-ret':'desc','pr-reach':'desc',
+  'inv-top':'desc','re-top':'desc',
+  'msr-net':'desc','msr-ret':'desc','msr-parties':'desc'
+};
+
+function toggleChartSort(key){
+  CHART_SORT[key] = CHART_SORT[key]==='desc' ? 'asc' : 'desc';
+  const btn = document.getElementById('sb-'+key);
+  if(btn){
+    const isDesc = CHART_SORT[key]==='desc';
+    btn.textContent = isDesc ? '↓ Desc' : '↑ Asc';
+    btn.classList.toggle('active', !isDesc);
+  }
+  redrawChart(key);
+}
+
+// Table sort state: tableId → {col, dir}
+const TBL_SORT = {};
+
+// ─── SORTABLE TABLE BUILDER ────────────────────────────────────────────────────
+// cols: [{label, key, align, sortVal(row)→comparable, render(row)→html}]
+// rows: array of data objects
+// tableId: unique id for sort state
+function buildSortableTable(tableId, cols, rows, opts={}){
+  const st = TBL_SORT[tableId] || {col: cols[0].key, dir:'asc'};
+  TBL_SORT[tableId] = st;
+
+  // Sort
+  const sorted = [...rows].sort((a,b)=>{
+    const col = cols.find(c=>c.key===st.col);
+    const av = col?.sortVal ? col.sortVal(a) : a[st.col];
+    const bv = col?.sortVal ? col.sortVal(b) : b[st.col];
+    if(av===null||av===undefined) return 1;
+    if(bv===null||bv===undefined) return -1;
+    const cmp = typeof av==='string' ? av.localeCompare(bv) : av-bv;
+    return st.dir==='asc' ? cmp : -cmp;
+  });
+
+  // Cap rows
+  const cap = opts.cap||1000;
+  const display = sorted.slice(0,cap);
+
+  const thHtml = cols.map(c=>{
+    const isActive = st.col===c.key;
+    const cls = ['sortable', isActive?(st.dir==='asc'?'sort-asc':'sort-desc'):''].filter(Boolean).join(' ');
+    const align = c.align==='right' ? 'style="text-align:right"' : '';
+    return `<th class="${cls}" ${align} onclick="tblSort('${tableId}','${c.key}')">${c.label}</th>`;
+  }).join('');
+
+  const tbodyHtml = display.map(r=>{
+    const rowClass = opts.rowClass ? opts.rowClass(r) : '';
+    const tds = cols.map(c=>{
+      const align = c.align==='right' ? 'style="text-align:right"' : '';
+      return `<td ${align}>${c.render(r)}</td>`;
+    }).join('');
+    return `<tr class="${rowClass}">${tds}</tr>`;
+  }).join('') || `<tr><td colspan="${cols.length}" style="text-align:center;padding:20px;color:var(--tx3)">No data</td></tr>`;
+
+  return `<table><thead><tr>${thHtml}</tr></thead><tbody>${tbodyHtml}</tbody></table>`;
+}
+
+function tblSort(tableId, colKey){
+  if(!TBL_SORT[tableId]) TBL_SORT[tableId]={col:colKey,dir:'asc'};
+  const st = TBL_SORT[tableId];
+  if(st.col===colKey){
+    st.dir = st.dir==='asc' ? 'desc' : 'asc';
+  } else {
+    st.col=colKey; st.dir='asc';
+  }
+  // Re-render the table by re-calling the page's table render function
+  redrawTable(tableId);
+}
+
+// Dispatch table redraws by tableId
+function redrawTable(tableId){
+  if(tableId==='sales-ledger') renderSalesTable();
+  else if(tableId==='prod-table') renderProductsTable();
+  else if(tableId==='batch-table') renderBatchTable();
+  else if(tableId==='msr-table') renderMsrTable();
+  else if(tableId.startsWith('ar-')) renderARTable(tableId);
+}
+
+// Dispatch chart redraws by key
+function redrawChart(key){
+  if(key==='ov-topcust') renderOvTopCust();
+  else if(key==='sa-topcust') renderSaTopCust();
+  else if(key==='pr-net') renderPrNet();
+  else if(key==='pr-ret') renderPrRet();
+  else if(key==='pr-reach') renderPrReach();
+  else if(key==='inv-top') renderInvTop();
+  else if(key==='re-top') renderReTop();
+  else if(key==='msr-net') renderMsrNet();
+  else if(key==='msr-ret') renderMsrRet();
+  else if(key==='msr-parties') renderMsrParties();
+}
+
+// ─── FORMATTERS ────────────────────────────────────────────────────────────────
+const INR = v => '₹' + Math.abs(+v||0).toLocaleString('en-IN',{maximumFractionDigits:0});
+const dLeft = d => { try{return Math.round((new Date(d)-new Date(TODAY))/86400000)}catch{return null} };
+const dAgo  = d => { try{return Math.round((new Date(TODAY)-new Date(d))/86400000)}catch{return 0} };
+const S = (s,n=24) => { s=String(s||''); return s.length>n?s.slice(0,n-1)+'…':s };
+
+function expiryBadge(exp){
+  if(!exp) return '<span class="badge badge-gray">No date</span>';
+  const d=dLeft(exp);
+  if(d<0)   return '<span class="badge badge-red">Expired</span>';
+  if(d<=90)  return '<span class="badge badge-red">≤90d</span>';
+  if(d<=180) return '<span class="badge badge-amber">≤180d</span>';
+  return '<span class="badge badge-green">Safe</span>';
+}
+
+function ageBadge(age){
+  if(age>180) return '<span class="badge badge-red">'+age+'d</span>';
+  if(age>60)  return '<span class="badge badge-amber">'+age+'d</span>';
+  return '<span class="badge badge-gray">'+age+'d</span>';
+}
+
+function statusBadge(age){
+  if(age>90) return '<span class="badge badge-red">Overdue</span>';
+  if(age>60) return '<span class="badge badge-amber">Watch</span>';
+  return '<span class="badge badge-teal">Active</span>';
+}
+
+// ─── FILE LOADING (manual fallback) ───────────────────────────────────────────
+const LOADED = {sales:false,inv:false,out:false,msr:false};
+
+function loadFile(type, input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      RAW[type] = parseWorkbookBuffer(e.target.result, type);
+      LOADED[type]=true;
+      document.getElementById('slot-'+type).classList.add('loaded');
+      document.getElementById('st-'+type).textContent = `✓ ${file.name} (${RAW[type].length} rows)`;
+      checkLaunch();
+    } catch(err){
+      document.getElementById('st-'+type).textContent = '⚠ Error: '+err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function checkLaunch(){
+  const allLoaded = LOADED.sales && LOADED.inv && LOADED.out;
+  document.getElementById('launch-btn').disabled = !allLoaded;
+  if(allLoaded) document.getElementById('launch-btn').textContent = 'Launch Dashboard →';
+}
+
+// ─── ALIAS MAPPING ─────────────────────────────────────────────────────────────
+function applyAlias(rows, type){
+  if(!rows.length) return rows;
+  const al=ALIAS[type]; if(!al) return rows;
+  const cols=Object.keys(rows[0]);
+  const map={};
+  for(const [canon,variants] of Object.entries(al)){
+    let found=false;
+    for(const v of variants){
+      const f=cols.find(x=>x.trim().toLowerCase()===v.toLowerCase());
+      if(f&&!map[f]){map[f]=canon;found=true;break}
+    }
+    if(!found){
+      for(const v of variants){
+        const f=cols.find(x=>x.trim().toLowerCase().includes(v.toLowerCase()));
+        if(f&&!map[f]){map[f]=canon;break}
+      }
+    }
+  }
+  return rows.map(r=>{const o={};for(const [k,v] of Object.entries(r)) o[map[k]||k]=v;return o});
+}
+
+// ─── DATE PARSING ──────────────────────────────────────────────────────────────
+function parseDate(d){
+  if(!d) return '';
+  d=String(d).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  let m=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if(m) return `${2000+Number(m[3])}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  m=d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  // Handle DD-MMM-YYYY or similar
+  m=d.match(/^(\d{1,2})[\/\-]([A-Za-z]{3})[\/\-](\d{2,4})$/);
+  if(m){
+    const MO={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+    const mo=MO[m[2].toLowerCase()];
+    if(mo){
+      const y=m[3].length===2?2000+Number(m[3]):Number(m[3]);
+      return `${y}-${String(mo).padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    }
+  }
+  return d;
+}
+
+function parseExpiry(e){
+  if(!e) return '';
+  const MO={Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+  // Format: May.26
+  let m=String(e).trim().match(/^([A-Za-z]{3})\.?(\d{2})$/);
+  if(m){
+    const mo=MO[m[1]];if(!mo) return '';
+    const y=2000+(+m[2]);
+    const last=new Date(y,mo,0).getDate();
+    return `${y}-${String(mo).padStart(2,'0')}-${String(last).padStart(2,'0')}`;
+  }
+  // Format: MM/YY
+  m=String(e).trim().match(/^(\d{1,2})\/(\d{2})$/);
+  if(m){
+    const mo=+m[1]; const y=2000+(+m[2]);
+    const last=new Date(y,mo,0).getDate();
+    return `${y}-${String(mo).padStart(2,'0')}-${String(last).padStart(2,'0')}`;
+  }
+  return parseDate(e);
+}
+
+function parseMoney(v){
+  if(v==null) return null;
+  const n=parseFloat(String(v).replace(/[DdRr]/g,'').replace(/,/g,'').trim());
+  return isNaN(n)?null:n;
+}
+
+// ─── FORWARD FILL ─────────────────────────────────────────────────────────────
+function forwardFill(arr,fs){
+  const last={};fs.forEach(f=>last[f]='');
+  for(const r of arr){
+    for(const f of fs){
+      const v=r[f];
+      if(v!=null&&String(v).trim()!==''&&!isSkip(v)) last[f]=v;
+      else if(!v||String(v).trim()==='') r[f]=last[f];
+    }
+  }
+  return arr;
+}
+
+// ─── CLEAN SALES ──────────────────────────────────────────────────────────────
+function cleanSales(raw){
+  const out=[];
+  for(const r of raw){
+    if(isSkip(r['Name'])||isSkip(r['Customer'])) continue;
+    // Skip SwilERP customer-product subtotal rows: real bill rows always have a Bill No.
+    // Subtotal rows have blank Bill No. but carry the summed Qty/Value → causes doubling
+    const billNo=String(r['Bill No.']||'').trim();
+    if(!billNo) continue;
+    const qty=parseMoney(r['Qty.']);
+    const sv=parseMoney(r['Sales Value']);
+    if(qty===null&&sv===null) continue;
+    out.push({
+      product_name:String(r['Name']||'').trim(),
+      customer:String(r['Customer']||'').trim(),
+      station:String(r['Station']||'').trim(),
+      bill_no:String(r['Bill No.']||'').trim(),
+      date:parseDate(r['Date']),
+      batch:String(r['Batch']||'').trim(),
+      qty:qty||0,
+      rate:parseMoney(r['Rate']),
+      sales_value:sv,
+      is_return:(qty!==null&&qty<0)||(sv!==null&&sv<0)
+    });
+  }
+  const filled=forwardFill(out,['product_name','customer','station']);
+  return filled.filter(r=>!isSkip(r.customer)&&!isSkip(r.product_name)&&r.product_name);
+}
+
+function cleanInventory(raw){
+  const out=[];
+  for(const r of raw){
+    if(isSkip(r['product_name'])) continue;
+    const pn=String(r['product_name']||'').trim();
+    const bn=String(r['batch_no']||'').trim();
+    if(!pn) continue;
+    out.push({
+      product_name:pn,
+      batch_no:bn,
+      current_balance:parseMoney(r['current_balance']),
+      expiry:parseExpiry(r['expiry']),
+      is_total:!bn
+    });
+  }
+  return forwardFill(out,['product_name']);
+}
+
+function cleanOutstanding(raw){
+  const out=[];
+  for(const r of raw){
+    if(isSkip(r['party_name'])) continue;
+    const pn=String(r['party_name']||'').trim();
+    const amt=parseMoney(r['net_amount']);
+    if(!pn||amt===null||amt===0) continue;
+    out.push({
+      voucher_no:String(r['voucher_no']||'').trim(),
+      date:parseDate(r['date']),
+      party_name:pn,
+      net_amount:amt
+    });
+  }
+  return out;
+}
+
+// ─── ADJUSTED AR ──────────────────────────────────────────────────────────────
+function computeAdjAR(){
+  // Build return credit pool per customer (from sales, keyed by lowercase trimmed name)
+  const pool={};
+  for(const r of D.s.filter(r=>r.is_return&&!isSkip(r.customer))){
+    const c=r.customer.trim().toLowerCase();
+    if(c) pool[c]=(pool[c]||0)+Math.abs(+r.sales_value||0);
+  }
+  // Group outstanding by base party name (before comma), lowercase
+  const grp={};
+  for(const r of D.o){
+    const c=r.party_name.split(',')[0].trim().toLowerCase();
+    if(!grp[c]) grp[c]=[];
+    grp[c].push({...r});
+  }
+  // Match pool keys to group keys using prefix matching to handle city-suffix differences
+  // e.g. pool key "deb enterprise" matches grp key "deb enterprise (basirhat)"
+  const poolLookup=(grpKey)=>{
+    if(pool[grpKey]) return pool[grpKey];
+    for(const [pk,pv] of Object.entries(pool)){
+      if(grpKey.startsWith(pk)||pk.startsWith(grpKey)) return pv;
+    }
+    return 0;
+  };
+  const pts=[];
+  for(const [cust,invs] of Object.entries(grp)){
+    const p=poolLookup(cust);
+    const orig=invs.reduce((s,r)=>s+(+r.net_amount||0),0);
+    const net=Math.max(0,orig-Math.min(p,orig));
+    const exc=Math.max(0,p-orig);
+    const state=p===0?'normal':exc>0?'over_returned':net===0?'cleared':'partial';
+    let rem=p;
+    const invd=invs
+      .sort((a,b)=>(a.date||'').localeCompare(b.date||''))
+      .map(inv=>{
+        const o=+inv.net_amount||0,a=Math.min(rem,o);
+        rem-=a;
+        return{...inv,ret_applied:a,adj_net:Math.max(0,o-a),age:dAgo(inv.date),cleared:a>=o};
+      });
+    // Store display name as the original (pre-lowercase) party base name
+    const displayCust=invs[0].party_name.split(',')[0].trim();
+    pts.push({cust:displayCust,party_name:invs[0].party_name,state,orig,returns:p,net,excess:exc,invs:invd});
+  }
+  return pts;
+}
+
+// ─── PLOTLY CONFIG ─────────────────────────────────────────────────────────────
+const PL={paper_bgcolor:'transparent',plot_bgcolor:'transparent',font:{family:"'DM Mono',monospace",color:'#6b7a8d',size:11},margin:{t:6,r:16,b:36,l:52},showlegend:false,colorway:['#00c49a','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316']};
+const AXD={gridcolor:'rgba(255,255,255,.05)',linecolor:'rgba(255,255,255,.05)',zerolinecolor:'rgba(255,255,255,.05)',tickfont:{size:10},automargin:true};
+const AX={xaxis:{...AXD},yaxis:{...AXD}};
+const PCFG={displayModeBar:false,responsive:true};
+const mkL=ex=>({...PL,...AX,...(ex||{})});
+function hbarL(lm=200){return{...PL,margin:{t:10,r:90,b:30,l:lm},xaxis:{...AXD,automargin:true},yaxis:{...AXD,automargin:false,ticklen:0},showlegend:false}}
+// MSR hbar: automargin on yaxis so long names never clip
+function msrHbarL(lm=210){return{...PL,margin:{t:10,r:90,b:30,l:lm},xaxis:{...AXD,automargin:true},yaxis:{...AXD,automargin:false,ticklen:0},showlegend:false}}
+function emptyChart(id,h=230){const el=document.getElementById(id);if(el) el.innerHTML=`<div style="display:flex;align-items:center;justify-content:center;height:${h}px;color:var(--tx3);font-size:12px">No data available</div>`}
+
+// ─── SALES MONTHS ─────────────────────────────────────────────────────────────
+function salesMonths(){
+  const ds=D.s.filter(r=>r.date).map(r=>r.date).sort();
+  if(ds.length<2) return 12;
+  return Math.max(1,Math.round((new Date(ds[ds.length-1])-new Date(ds[0]))/2592000000));
+}
+
+// ─── MSR MASTER PARSING ────────────────────────────────────────────────────────
+function parseMsrMaster(rows){
+  MSR_MAP = {}; ABM_MAP = {}; MSR_NAMES = []; ABM_NAMES = []; MSR_STATES = {};
+  if(!rows||!rows.length) return;
+
+  // Detect column keys by matching header names (case-insensitive, trimmed)
+  // Expected headers: SL No. | Code | Customer Name | Place | State | MSR - 1 | MSR - 2 | MSR - 3 | ABM - 1 | ABM - 2
+  const allKeys = Object.keys(rows[0]);
+  const findKey = (...candidates) => allKeys.find(k =>
+    candidates.some(c => k.trim().toLowerCase().includes(c.toLowerCase()))
+  ) || null;
+
+  const kCust  = findKey('customer name', 'customer');
+  const kState = findKey('state');
+  const kMsr1  = findKey('msr - 1', 'msr-1', 'msr1');
+  const kMsr2  = findKey('msr - 2', 'msr-2', 'msr2');
+  const kMsr3  = findKey('msr - 3', 'msr-3', 'msr3');
+  const kAbm1  = findKey('abm - 1', 'abm-1', 'abm1');
+  const kAbm2  = findKey('abm - 2', 'abm-2', 'abm2');
+
+  // Fallback: if header matching fails, use positional (col 2=cust, 4=state, 5-7=msrs, 8-9=abms)
+  const usePositional = !kCust;
+  const getByPos = (r, i) => String(Object.values(r)[i] || '').trim();
+
+  for(const r of rows){
+    let custName, state, msr1, msr2, msr3, abm1, abm2;
+    if(usePositional){
+      custName = getByPos(r,2); state = getByPos(r,4);
+      msr1=getByPos(r,5); msr2=getByPos(r,6); msr3=getByPos(r,7);
+      abm1=getByPos(r,8); abm2=getByPos(r,9);
+    } else {
+      custName = String(r[kCust]||'').trim();
+      state    = kState ? String(r[kState]||'').trim() : '';
+      msr1     = kMsr1  ? String(r[kMsr1]||'').trim()  : '';
+      msr2     = kMsr2  ? String(r[kMsr2]||'').trim()  : '';
+      msr3     = kMsr3  ? String(r[kMsr3]||'').trim()  : '';
+      abm1     = kAbm1  ? String(r[kAbm1]||'').trim()  : '';
+      abm2     = kAbm2  ? String(r[kAbm2]||'').trim()  : '';
+    }
+
+    if(!custName || custName.length < 2) continue;
+    // Skip header-like rows that slipped through
+    if(custName.toLowerCase().includes('customer')) continue;
+
+    const msrs = [msr1,msr2,msr3].filter(v=>v&&v.length>1);
+    const abms = [abm1,abm2].filter(v=>v&&v.length>1);
+    if(!msrs.length) continue;
+
+    const msrShare = 1 / msrs.length;
+    const abmShare = abms.length ? 1 / abms.length : 0;
+
+    MSR_MAP[custName] = msrs.map(name=>({name, share: msrShare}));
+
+    for(const msr of msrs){
+      if(!MSR_STATES[msr]) MSR_STATES[msr] = state;
+      if(!ABM_MAP[msr]) ABM_MAP[msr] = [];
+      for(const abm of abms){
+        if(!ABM_MAP[msr].find(a=>a.name===abm)){
+          ABM_MAP[msr].push({name:abm, share:abmShare});
+        }
+      }
+    }
+  }
+  MSR_NAMES = [...new Set(Object.values(MSR_MAP).flat().map(m=>m.name))].sort();
+  ABM_NAMES = [...new Set(Object.values(ABM_MAP).flat().map(a=>a.name))].sort();
+}
+
+// ─── MSR ATTRIBUTION ENGINE ────────────────────────────────────────────────────
+// Computes _msrEntries and _abmEntries from FS + MSR_MAP/ABM_MAP
+function computeMsrEntries(salesData){
+  // salesData: either FS (when MSR filter active) or FS for global filter
+  const msrMap = {}; // msrName → {gross, ret, net, parties:Set, byMonth:{mo→net}}
+
+  for(const r of salesData){
+    if(!r.customer||isSkip(r.customer)) continue;
+    const custKey = r.customer.trim();
+    const msrs = MSR_MAP[custKey] || [{name:'Unassigned', share:1}];
+    const sv = +r.sales_value || 0;
+
+    for(const {name: msr, share} of msrs){
+      if(!msrMap[msr]) msrMap[msr]={gross:0,ret:0,net:0,parties:new Set(),byMonth:{}};
+      const val = sv * share;
+      const mo = r.date?.slice(0,7)||'Unknown';
+      if(r.is_return){
+        msrMap[msr].ret += Math.abs(val);
+      } else {
+        msrMap[msr].gross += val;
+        msrMap[msr].parties.add(custKey);
+        msrMap[msr].byMonth[mo] = (msrMap[msr].byMonth[mo]||0) + val;
+      }
+      msrMap[msr].net = msrMap[msr].gross - msrMap[msr].ret;
+    }
+  }
+
+  _msrEntries = Object.entries(msrMap).map(([msr, v])=>({
+    msr,
+    abms: (ABM_MAP[msr]||[]).map(a=>a.name).join(', ') || (msr==='Unassigned'?'—':'—'),
+    state: MSR_STATES[msr] || '—',
+    gross: v.gross,
+    ret:   v.ret,
+    net:   v.net,
+    retR:  v.gross>0 ? v.ret/v.gross*100 : 0,
+    parties: v.parties.size,
+    partyList: [...v.parties],
+    byMonth: v.byMonth
+  }));
+
+  // ABM entries — split attribution
+  const abmMap = {};
+  for(const r of salesData){
+    if(!r.customer||isSkip(r.customer)) continue;
+    const custKey = r.customer.trim();
+    const msrs = MSR_MAP[custKey] || [];
+    if(!msrs.length) continue; // unassigned → skip for ABM
+
+    const sv = +r.sales_value || 0;
+    // Collect all ABMs from all MSRs for this customer, with combined share
+    const abmContribs = {};
+    for(const {name: msr, share: msrShare} of msrs){
+      for(const {name: abm, share: abmShare} of (ABM_MAP[msr]||[])){
+        abmContribs[abm] = (abmContribs[abm]||0) + msrShare * abmShare;
+      }
+    }
+    for(const [abm, totalShare] of Object.entries(abmContribs)){
+      if(!abmMap[abm]) abmMap[abm]={gross:0,ret:0,net:0,parties:new Set(),msrNets:{}};
+      const val = sv * totalShare;
+      if(r.is_return){
+        abmMap[abm].ret += Math.abs(val);
+      } else {
+        abmMap[abm].gross += val;
+        abmMap[abm].parties.add(custKey);
+      }
+      abmMap[abm].net = abmMap[abm].gross - abmMap[abm].ret;
+    }
+  }
+  // Compute MSR breakdown per ABM
+  for(const e of _msrEntries){
+    for(const {name: abm, share: abmShare} of (ABM_MAP[e.msr]||[])){
+      if(!abmMap[abm]) continue;
+      if(!abmMap[abm].msrNets) abmMap[abm].msrNets={};
+      abmMap[abm].msrNets[e.msr] = (abmMap[abm].msrNets[e.msr]||0) + e.net * abmShare;
+    }
+  }
+  _abmEntries = Object.entries(abmMap).map(([abm,v])=>({
+    abm,
+    gross: v.gross, ret: v.ret, net: v.net,
+    parties: v.parties.size,
+    msrNets: v.msrNets||{}
+  }));
+}
+
+// ─── MSR FILTERS ──────────────────────────────────────────────────────────────
+function applyMsrFilters(){
+  MF.abm   = document.getElementById('mf-abm').value;
+  MF.msr   = document.getElementById('mf-msr').value;
+  MF.state = document.getElementById('mf-state').value;
+  const active=[MF.abm,MF.msr,MF.state].filter(Boolean);
+  const b=document.getElementById('mf-badge');
+  b.style.display=active.length?'':'none';
+  b.textContent=active.length?`${active.length} filter${active.length>1?'s':''} active`:'';
+  RENDERED.delete('pg-msr');
+  if(document.getElementById('pg-msr').classList.contains('on')) renderPage('pg-msr');
+}
+
+function resetMsrFilters(){
+  MF={abm:'',msr:'',state:''};
+  document.getElementById('mf-abm').value='';
+  document.getElementById('mf-msr').value='';
+  document.getElementById('mf-state').value='';
+  document.getElementById('mf-badge').style.display='none';
+  RENDERED.delete('pg-msr');
+  if(document.getElementById('pg-msr').classList.contains('on')) renderPage('pg-msr');
+}
+
+function getFilteredMsrEntries(){
+  return _msrEntries.filter(e=>{
+    if(MF.msr && e.msr !== MF.msr) return false;
+    if(MF.state && e.state !== MF.state) return false;
+    if(MF.abm){
+      const abms = ABM_MAP[e.msr]||[];
+      if(!abms.find(a=>a.name===MF.abm)) return false;
+    }
+    return true;
+  });
+}
+
+// ─── LAUNCH ───────────────────────────────────────────────────────────────────
+// Inventory filter state
+let IF = { expiry:'', prod:'' };
+// Receivables filter state
+let RF = { state:'', age:'', party:'' };
+
+function launch(){
+  D.s = cleanSales(RAW.sales||[]);
+  D.i = cleanInventory(RAW.inv||[]);
+  D.o = cleanOutstanding(RAW.out||[]);
+  FS  = [...D.s];
+  IF  = { expiry:'', prod:'', party:'' };
+  RF  = { state:'', age:'', party:'' };
+  MF  = { abm:'', msr:'', state:'' };
+
+  // Parse MSR master if uploaded
+  if(RAW.msr){
+    parseMsrMaster(RAW.msr);
+    computeMsrEntries(FS);
+    document.getElementById('nav-msr').style.display='block';
+  } else {
+    MSR_MAP={}; ABM_MAP={}; MSR_NAMES=[]; ABM_NAMES=[]; _msrEntries=[]; _abmEntries=[];
+    document.getElementById('nav-msr').style.display='none';
+  }
+
+  document.getElementById('upload-screen').style.display='none';
+  document.getElementById('topbar').style.display='flex';
+  document.getElementById('nav').style.display='flex';
+  document.getElementById('global-filter-bar').style.display='block';
+
+  populateFilters();
+  buildBadges();
+  RENDERED.clear();
+  document.querySelector('.page').classList.add('on');
+  renderPage('pg-overview');
+}
+
+function buildBadges(){
+  const dates=D.s.filter(r=>r.date).map(r=>r.date).sort();
+  const d0=dates[0]?.slice(0,10)||'?', d1=dates[dates.length-1]?.slice(0,10)||'?';
+  const prods=new Set(D.s.map(r=>r.product_name)).size;
+  const custs=new Set(D.s.map(r=>r.customer)).size;
+  document.getElementById('tb-badges').innerHTML=`
+    <span class="badge badge-gray">${d0} → ${d1}</span>
+    <span class="badge badge-blue">${prods} products</span>
+    <span class="badge badge-teal">${custs} customers</span>`;
+}
+
+function populateFilters(){
+  const dates=D.s.filter(r=>r.date).map(r=>r.date).sort();
+  if(dates.length){
+    document.getElementById('f-from').value=dates[0];
+    document.getElementById('f-to').value=dates[dates.length-1];
+  }
+  const setOpts=(sel,items)=>{
+    const el=document.getElementById(sel);
+    if(!el) return;
+    el.innerHTML='<option value="">All</option>';
+    [...new Set(items)].filter(x=>x&&!isSkip(x)).sort().forEach(v=>{
+      el.innerHTML+=`<option>${v}</option>`;
+    });
+  };
+  // Global filter dropdowns
+  setOpts('f-cust',D.s.map(r=>r.customer));
+  setOpts('f-station',D.s.map(r=>r.station));
+  setOpts('f-prod',D.s.map(r=>r.product_name));
+  // Inventory filter dropdowns
+  setOpts('if-prod',D.i.filter(r=>!r.is_total&&r.batch_no).map(r=>r.product_name));
+  setOpts('if-party',D.s.map(r=>r.customer));
+  // Receivables filter dropdown
+  setOpts('rf-party',D.o.map(r=>r.party_name.split(',')[0].trim()));
+  // MSR filter dropdowns
+  if(ABM_NAMES.length) setOpts('mf-abm', ABM_NAMES);
+  if(MSR_NAMES.length) setOpts('mf-msr', MSR_NAMES);
+  // States from MSR master
+  const stateList = [...new Set(Object.values(MSR_STATES))].filter(Boolean).sort();
+  if(stateList.length) setOpts('mf-state', stateList);
+}
+
+function applyFilters(){
+  const from=document.getElementById('f-from').value;
+  const to=document.getElementById('f-to').value;
+  const cust=document.getElementById('f-cust').value;
+  const station=document.getElementById('f-station').value;
+  const prod=document.getElementById('f-prod').value;
+  FS=D.s.filter(r=>{
+    if(from&&r.date<from) return false;
+    if(to&&r.date>to) return false;
+    if(cust&&r.customer!==cust) return false;
+    if(station&&r.station!==station) return false;
+    if(prod&&r.product_name!==prod) return false;
+    return true;
+  });
+  const active=[cust,station,prod].filter(Boolean);
+  const fb=document.getElementById('filter-badge');
+  fb.style.display=active.length?'':'none';
+  fb.textContent=active.length?`${active.length} filter${active.length>1?'s':''} active`:'';
+  // Invalidate all three global-filter tabs — newPlot will overwrite on re-render
+  ['pg-overview','pg-sales','pg-products'].forEach(pg=>RENDERED.delete(pg));
+  // Recompute MSR attribution when sales filter changes
+  if(RAW.msr){ computeMsrEntries(FS); RENDERED.delete('pg-msr'); }
+  const active_pg=document.querySelector('.page.on')?.id;
+  if(active_pg&&GLOBAL_FILTER_TABS.has(active_pg)) renderPage(active_pg);
+}
+
+function resetFilters(){
+  const dates=D.s.filter(r=>r.date).map(r=>r.date).sort();
+  if(dates.length){
+    document.getElementById('f-from').value=dates[0];
+    document.getElementById('f-to').value=dates[dates.length-1];
+  }
+  document.getElementById('f-cust').value='';
+  document.getElementById('f-station').value='';
+  document.getElementById('f-prod').value='';
+  document.getElementById('filter-badge').style.display='none';
+  FS=[...D.s];
+  ['pg-overview','pg-sales','pg-products'].forEach(pg=>RENDERED.delete(pg));
+  if(RAW.msr){ computeMsrEntries(FS); RENDERED.delete('pg-msr'); }
+  const active_pg=document.querySelector('.page.on')?.id;
+  if(active_pg&&GLOBAL_FILTER_TABS.has(active_pg)) renderPage(active_pg);
+}
+
+function resetAll(){
+  document.getElementById('topbar').style.display='none';
+  document.getElementById('nav').style.display='none';
+  document.getElementById('global-filter-bar').style.display='none';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  LOADED.sales=LOADED.inv=LOADED.out=LOADED.msr=false;
+  RAW.sales=RAW.inv=RAW.out=RAW.msr=null;
+  IF={expiry:'',prod:'',party:''};
+  RF={state:'',age:'',party:''};
+  MF={abm:'',msr:'',state:''};
+  MSR_MAP={}; ABM_MAP={}; MSR_NAMES=[]; ABM_NAMES=[]; _msrEntries=[]; _abmEntries=[];
+  ['sales','inv','out','msr'].forEach(t=>{
+    const sl=document.getElementById('slot-'+t);
+    if(sl) sl.classList.remove('loaded');
+    const st=document.getElementById('st-'+t);
+    if(st) st.textContent='Click to upload XLS file';
+  });
+  document.getElementById('nav-msr').style.display='none';
+  document.getElementById('launch-btn').disabled=true;
+  RENDERED.clear();
+  // Reset loading screen state and re-trigger auto-fetch
+  document.getElementById('load-bar').style.width='0%';
+  document.getElementById('load-error-msg').style.display='none';
+  document.getElementById('load-fallback-btn').style.display='none';
+  ['sales','inv','out','msr'].forEach(t=>setStep(t,'',''));
+  const msrStep=document.getElementById('ls-msr');
+  if(msrStep) msrStep.style.display='';
+  autoFetch();
+}
+
+// ─── INVENTORY FILTERS ────────────────────────────────────────────────────────
+function applyInvFilters(){
+  IF.expiry=document.getElementById('if-expiry').value;
+  IF.prod=document.getElementById('if-prod').value;
+  IF.party=document.getElementById('if-party').value;
+  const active=[IF.expiry,IF.prod,IF.party].filter(Boolean);
+  const b=document.getElementById('if-badge');
+  b.style.display=active.length?'':'none';
+  b.textContent=active.length?`${active.length} filter${active.length>1?'s':''} active`:'';
+  RENDERED.delete('pg-inventory');
+  if(document.getElementById('pg-inventory').classList.contains('on')) renderPage('pg-inventory');
+}
+
+function resetInvFilters(){
+  IF={expiry:'',prod:'',party:''};
+  document.getElementById('if-expiry').value='';
+  document.getElementById('if-prod').value='';
+  document.getElementById('if-party').value='';
+  document.getElementById('if-badge').style.display='none';
+  RENDERED.delete('pg-inventory');
+  if(document.getElementById('pg-inventory').classList.contains('on')) renderPage('pg-inventory');
+}
+
+function getFilteredInv(){
+  // Party filter: find batches that were sold to the selected party
+  let partyBatches=null;
+  if(IF.party){
+    partyBatches=new Set(
+      D.s.filter(r=>r.customer===IF.party&&r.batch)
+         .map(r=>r.batch.replace(/\.$/,'').trim())
+    );
+  }
+  return D.i.filter(r=>{
+    if(r.is_total||!r.batch_no) return false;
+    if(IF.prod&&r.product_name!==IF.prod) return false;
+    if(partyBatches&&!partyBatches.has(r.batch_no.replace(/\.$/,'').trim())) return false;
+    if(IF.expiry){
+      const d=r.expiry?dLeft(r.expiry):null;
+      if(IF.expiry==='expired'  &&!(d!==null&&d<0)) return false;
+      if(IF.expiry==='critical' &&!(d!==null&&d>=0&&d<=90)) return false;
+      if(IF.expiry==='warning'  &&!(d!==null&&d>90&&d<=180)) return false;
+      if(IF.expiry==='safe'     &&!(d!==null&&d>180)) return false;
+      if(IF.expiry==='nodate'   &&r.expiry) return false;
+    }
+    return true;
+  });
+}
+
+// ─── RECEIVABLES FILTERS ──────────────────────────────────────────────────────
+function applyRecFilters(){
+  RF.state=document.getElementById('rf-state').value;
+  RF.age=document.getElementById('rf-age').value;
+  RF.party=document.getElementById('rf-party').value;
+  const active=[RF.state,RF.age,RF.party].filter(Boolean);
+  const b=document.getElementById('rf-badge');
+  b.style.display=active.length?'':'none';
+  b.textContent=active.length?`${active.length} filter${active.length>1?'s':''} active`:'';
+  RENDERED.delete('pg-receivables');
+  if(document.getElementById('pg-receivables').classList.contains('on')) renderPage('pg-receivables');
+}
+
+function resetRecFilters(){
+  RF={state:'',age:'',party:''};
+  document.getElementById('rf-state').value='';
+  document.getElementById('rf-age').value='';
+  document.getElementById('rf-party').value='';
+  document.getElementById('rf-badge').style.display='none';
+  RENDERED.delete('pg-receivables');
+  if(document.getElementById('pg-receivables').classList.contains('on')) renderPage('pg-receivables');
+}
+
+function getFilteredAR(){
+  return _adjAR.filter(p=>{
+    if(RF.state&&p.state!==RF.state) return false;
+    if(RF.party&&p.cust!==RF.party) return false; // exact match — dropdown
+    if(RF.age){
+      const lo=+RF.age;
+      const hi=lo===0?30:lo===31?60:lo===61?90:lo===91?180:Infinity;
+      const hasMatch=p.invs.some(inv=>{
+        const age=inv.age;
+        return lo===181?age>180:age>=lo&&age<=hi;
+      });
+      if(!hasMatch) return false;
+    }
+    return true;
+  });
+}
+
+// ─── PAGE NAVIGATION ──────────────────────────────────────────────────────────
+const GLOBAL_FILTER_TABS = new Set(['pg-overview','pg-sales','pg-products']);
+
+function gotoPage(pgId, btn){
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  const pg=document.getElementById(pgId);
+  pg.classList.add('on');
+  // Show global filter bar only for sales-data tabs
+  document.getElementById('global-filter-bar').style.display =
+    GLOBAL_FILTER_TABS.has(pgId) ? 'block' : 'none';
+  renderPage(pgId);
+  setTimeout(()=>{
+    pg.querySelectorAll('div[id^="ch-"]').forEach(el=>{try{Plotly.Plots.resize(el)}catch(e){}});
+  },60);
+}
+
+function renderPage(pgId){
+  if(RENDERED.has(pgId)) return;
+  RENDERED.add(pgId);
+  if(pgId==='pg-overview')   renderOverview();
+  else if(pgId==='pg-sales') renderSales();
+  else if(pgId==='pg-products') renderProducts();
+  else if(pgId==='pg-inventory') renderInventory();
+  else if(pgId==='pg-receivables') renderReceivables();
+  else if(pgId==='pg-msr') renderMsr();
+}
+
+// ─── OVERVIEW ─────────────────────────────────────────────────────────────────
+function renderOvTopCust(){
+  const cm={};
+  for(const r of FS){
+    if(!r.customer||isSkip(r.customer)) continue;
+    if(!cm[r.customer]) cm[r.customer]=0;
+    cm[r.customer]+=(+r.sales_value||0);
+  }
+  const sorted=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const tc = CHART_SORT['ov-topcust']==='desc' ? [...sorted].reverse() : sorted;
+  if(!tc.length){emptyChart('ch-ov-topcust',240);return;}
+  Plotly.newPlot('ch-ov-topcust',[{
+    x:tc.map(e=>e[1]),y:tc.map(e=>S(e[0],22)),type:'bar',orientation:'h',
+    marker:{color:tc.map((_,i)=>`hsla(${200+i*16},60%,55%,.85)`)},
+    text:tc.map(e=>INR(e[1])),textposition:'outside',textfont:{size:10,color:'#8892a4'},
+    cliponaxis:false,hovertemplate:'%{y}<br>₹%{x:,.0f}<extra></extra>'
+  }],hbarL(185),PCFG);
+}
+
+function renderOverview(){
+  const sells=FS.filter(r=>!r.is_return);
+  const rets=FS.filter(r=>r.is_return);
+  const gross=sells.reduce((s,r)=>s+(+r.sales_value||0),0);
+  const retsAmt=rets.reduce((s,r)=>s+Math.abs(+r.sales_value||0),0);
+  const net=gross-retsAmt;
+  const retPct=(gross>0?(retsAmt/gross*100):0).toFixed(1);
+
+  // Net Receivables & Credit Notes — filter AR to customers present in FS
+  // Uses prefix matching to handle city-suffix differences between outstanding and sales names
+  const fsCustomers=new Set(FS.map(r=>r.customer.trim().toLowerCase()).filter(Boolean));
+  const adjAR=computeAdjAR();
+  const adjARFiltered=fsCustomers.size===new Set(D.s.map(r=>r.customer.trim().toLowerCase()).filter(Boolean)).size
+    ? adjAR  // no customer filter active — show all
+    : adjAR.filter(p=>{
+        const pc=p.cust.trim().toLowerCase();
+        if(fsCustomers.has(pc)) return true;
+        for(const fc of fsCustomers){
+          if(pc.startsWith(fc)||fc.startsWith(pc)) return true;
+        }
+        return false;
+      });
+  const adjNet=adjARFiltered.filter(p=>p.state!=='over_returned').reduce((s,p)=>s+p.net,0);
+  const overE=adjARFiltered.filter(p=>p.state==='over_returned').reduce((s,p)=>s+p.excess,0);
+  const arParties=adjARFiltered.filter(p=>p.net>0).length;
+  const oeParties=adjARFiltered.filter(p=>p.state==='over_returned').length;
+
+  // Stock Units & Batches — filter inventory by products present in FS
+  const fsProds=new Set(FS.map(r=>r.product_name).filter(Boolean));
+  const invFiltered=D.i.filter(r=>!r.is_total&&r.batch_no&&fsProds.has(r.product_name));
+  const totalUnits=invFiltered.reduce((s,r)=>s+(+r.current_balance||0),0);
+  const batches=invFiltered.length;
+
+  // Products Active & Customers — directly from FS
+  const prods=fsProds.size;
+  const custs=new Set(FS.map(r=>r.customer).filter(Boolean)).size;
+
+  document.getElementById('kpi-overview').innerHTML=`
+    <div class="kpi"><div class="kpi-accent" style="background:var(--teal)"></div>
+      <div class="kpi-label">Net Sales</div><div class="kpi-value">${INR(net)}</div>
+      <div class="kpi-sub">Gross ${INR(gross)}</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div>
+      <div class="kpi-label">Total Returns</div><div class="kpi-value">${INR(retsAmt)}</div>
+      <div class="kpi-sub neg">${retPct}% of gross</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--amber)"></div>
+      <div class="kpi-label">Net Receivables</div><div class="kpi-value">${INR(adjNet)}</div>
+      <div class="kpi-sub">${arParties} parties</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--orange)"></div>
+      <div class="kpi-label">Credit Notes Due</div><div class="kpi-value">${INR(overE)}</div>
+      <div class="kpi-sub neg">${oeParties} parties</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div>
+      <div class="kpi-label">Stock Units</div><div class="kpi-value">${Math.round(totalUnits).toLocaleString('en-IN')}</div>
+      <div class="kpi-sub">${batches} batches</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div>
+      <div class="kpi-label">Products Active</div><div class="kpi-value">${prods}</div>
+      <div class="kpi-sub">${custs} customers</div></div>`;
+
+  buildRiskCards();
+
+  // Monthly chart
+  const byMonth={};
+  for(const r of FS){
+    const mo=r.date?.slice(0,7)||'Unknown';
+    if(!byMonth[mo]) byMonth[mo]={gross:0,ret:0};
+    if(r.is_return) byMonth[mo].ret+=Math.abs(+r.sales_value||0);
+    else byMonth[mo].gross+=(+r.sales_value||0);
+  }
+  const months=Object.keys(byMonth).filter(m=>m!=='Unknown').sort();
+  const gVals=months.map(m=>byMonth[m].gross);
+  const rVals=months.map(m=>byMonth[m].ret);
+  const nVals=months.map(m=>byMonth[m].gross-byMonth[m].ret);
+  const moLabels=months.map(m=>{try{const d=new Date(m+'-01');return d.toLocaleString('default',{month:'short',year:'2-digit'})}catch{return m}});
+
+  Plotly.newPlot('ch-ov-monthly',[
+    {x:moLabels,y:gVals,name:'Gross',type:'bar',marker:{color:'rgba(0,196,154,.7)'},hovertemplate:'%{x}<br>Gross: ₹%{y:,.0f}<extra></extra>'},
+    {x:moLabels,y:rVals.map(v=>-v),name:'Returns',type:'bar',marker:{color:'rgba(239,68,68,.75)'},hovertemplate:'%{x}<br>Returns: ₹%{y:,.0f}<extra></extra>'},
+    {x:moLabels,y:nVals,name:'Net',type:'scatter',mode:'lines+markers',line:{color:'#f59e0b',width:2.5},marker:{size:5,color:'#f59e0b'},hovertemplate:'%{x}<br>Net: ₹%{y:,.0f}<extra></extra>'}
+  ],mkL({barmode:'relative',showlegend:true,legend:{orientation:'h',x:0,y:-0.22,font:{size:10}},margin:{t:6,r:16,b:55,l:55}}),PCFG);
+
+  // Top customers hbar — delegated to sortable function
+  renderOvTopCust();
+
+  // Stations donut
+  const sm={};
+  for(const r of FS){
+    if(!r.station||isSkip(r.station)) continue;
+    sm[r.station]=(sm[r.station]||0)+(+r.sales_value||0);
+  }
+  const top12=Object.entries(sm).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  if(top12.length){
+    Plotly.newPlot('ch-ov-stations',[{
+      labels:top12.map(e=>e[0]),values:top12.map(e=>e[1]),type:'pie',hole:0.46,
+      textinfo:'label+percent',textfont:{size:10},
+      marker:{colors:['#00c49a','#3b82f6','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#ef4444','#f97316','#a3e635','#06b6d4','#84cc16','#f43f5e']},
+      hovertemplate:'%{label}<br>₹%{value:,.0f}<extra></extra>'
+    }],{...PL,margin:{t:10,r:10,b:10,l:10}},PCFG);
+  } else emptyChart('ch-ov-stations',240);
+
+  // Trend area
+  Plotly.newPlot('ch-ov-trend',[{
+    x:moLabels,y:nVals,type:'scatter',mode:'lines+markers',
+    fill:'tozeroy',fillcolor:'rgba(0,196,154,.08)',
+    line:{color:'#00c49a',width:2.5},marker:{size:5,color:'#00c49a'},
+    hovertemplate:'%{x}<br>Net: ₹%{y:,.0f}<extra></extra>'
+  }],mkL({margin:{t:6,r:16,b:36,l:55}}),PCFG);
+}
+
+function buildRiskCards(){
+  const inv=D.i.filter(r=>!r.is_total);
+
+  // 1. Expiring ≤90d (always from full inventory — not filtered by sales)
+  const exp90=inv.filter(r=>r.expiry&&dLeft(r.expiry)>=0&&dLeft(r.expiry)<=90).sort((a,b)=>a.expiry.localeCompare(b.expiry));
+  // 2. High return rate — from FS so filter applies
+  const pm={};
+  for(const r of FS){
+    if(!r.product_name) continue;
+    if(!pm[r.product_name]) pm[r.product_name]={g:0,r:0};
+    if(r.is_return) pm[r.product_name].r+=Math.abs(+r.sales_value||0);
+    else pm[r.product_name].g+=(+r.sales_value||0);
+  }
+  const hiRet=Object.entries(pm).filter(([,v])=>v.g>50000&&v.r/v.g>0.10).sort((a,b)=>b[1].r/b[1].g-a[1].r/a[1].g);
+  // 3. Slow/dead stock — qty from FS
+  const mths=salesMonths();
+  const qmap={};
+  for(const r of FS.filter(r=>!r.is_return)) qmap[r.product_name]=(qmap[r.product_name]||0)+(+r.qty||0);
+  const slow=inv.filter(r=>r.is_total).map(r=>{
+    const qPerMo=(qmap[r.product_name]||0)/mths;
+    const bal=+r.current_balance||0;
+    const cover=qPerMo>0?bal/qPerMo:999;
+    return{name:r.product_name,cover,bal};
+  }).filter(r=>r.bal>0&&r.cover>3).sort((a,b)=>b.cover-a.cover);
+  // 4. Near-expiry at parties — from FS so filter applies
+  const bExp={};
+  for(const r of inv) if(r.batch_no) bExp[r.batch_no.replace(/\.$/,'').trim()]=r.expiry;
+  const nearExpSales=FS.filter(r=>{
+    const exp=bExp[(r.batch||'').replace(/\.$/,'').trim()];
+    return exp&&dLeft(exp)>=0&&dLeft(exp)<=90;
+  });
+  const nearExpCusts=[...new Set(nearExpSales.map(r=>r.customer))];
+
+  const rg=document.getElementById('risk-grid');
+  rg.innerHTML=`
+    <div class="risk-card">
+      <div class="risk-card-hd"><div class="risk-icon" style="background:rgba(239,68,68,.15)">🔴</div>
+        <div><div class="risk-title">Expiring ≤90 Days</div><div class="risk-sub">${exp90.length} batches at risk</div></div></div>
+      <div class="risk-items">${exp90.slice(0,8).map(r=>`<div class="risk-item"><span class="ri-name">${S(r.product_name,26)}</span><span class="ri-val">${expiryBadge(r.expiry)} ${(+r.current_balance||0).toFixed(0)} u</span></div>`).join('')||'<div style="color:var(--tx3);font-size:10px;padding:6px 0">No critical stock</div>'}</div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-card-hd"><div class="risk-icon" style="background:rgba(239,68,68,.15)">📉</div>
+        <div><div class="risk-title">High Return Rate</div><div class="risk-sub">${hiRet.length} products >10%</div></div></div>
+      <div class="risk-items">${hiRet.slice(0,8).map(([n,v])=>`<div class="risk-item"><span class="ri-name">${S(n,22)}</span><span class="ri-val" style="color:var(--red)">${(v.r/v.g*100).toFixed(1)}%</span></div>`).join('')||'<div style="color:var(--tx3);font-size:10px;padding:6px 0">No high-return products</div>'}</div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-card-hd"><div class="risk-icon" style="background:rgba(245,158,11,.15)">🐌</div>
+        <div><div class="risk-title">Slow / Dead Stock</div><div class="risk-sub">${slow.length} products >3mo cover</div></div></div>
+      <div class="risk-items">${slow.slice(0,8).map(r=>`<div class="risk-item"><span class="ri-name">${S(r.name,22)}</span><span class="ri-val" style="color:var(--amber)">${r.cover>99?'∞':r.cover.toFixed(1)}mo</span></div>`).join('')||'<div style="color:var(--tx3);font-size:10px;padding:6px 0">No slow-moving stock</div>'}</div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-card-hd"><div class="risk-icon" style="background:rgba(59,130,246,.15)">📦</div>
+        <div><div class="risk-title">Near-Expiry at Parties</div><div class="risk-sub">${nearExpCusts.length} customers affected</div></div></div>
+      <div class="risk-items">${nearExpCusts.slice(0,8).map(c=>`<div class="risk-item"><span class="ri-name">${S(c,26)}</span><span class="ri-val"><span class="badge badge-red">≤90d</span></span></div>`).join('')||'<div style="color:var(--tx3);font-size:10px;padding:6px 0">No near-expiry at parties</div>'}</div>
+    </div>`;
+}
+
+// ─── SALES TAB ────────────────────────────────────────────────────────────────
+function renderSaTopCust(){
+  const cm={};
+  for(const r of FS){
+    if(!r.customer||isSkip(r.customer)) continue;
+    cm[r.customer]=(cm[r.customer]||0)+(+r.sales_value||0);
+  }
+  const sorted=Object.entries(cm).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const tc = CHART_SORT['sa-topcust']==='desc' ? [...sorted].reverse() : sorted;
+  if(!tc.length){emptyChart('ch-sa-topcust',230);return;}
+  Plotly.newPlot('ch-sa-topcust',[{
+    x:tc.map(e=>e[1]),y:tc.map(e=>S(e[0],22)),type:'bar',orientation:'h',
+    marker:{color:'rgba(59,130,246,.8)'},
+    text:tc.map(e=>INR(e[1])),textposition:'outside',textfont:{size:10,color:'#8892a4'},
+    cliponaxis:false,hovertemplate:'%{y}<br>₹%{x:,.0f}<extra></extra>'
+  }],hbarL(185),PCFG);
+}
+
+function renderSalesTable(){
+  const SALE_COLS=[
+    {label:'Date',      key:'date',        render:r=>r.date||'',
+      sortVal:r=>r.date||''},
+    {label:'Bill No.',  key:'bill_no',     render:r=>`<span style="color:var(--tx2)">${S(r.bill_no,12)}</span>`,
+      sortVal:r=>r.bill_no},
+    {label:'Product',   key:'product_name',render:r=>S(r.product_name,28),
+      sortVal:r=>r.product_name},
+    {label:'Customer',  key:'customer',    render:r=>S(r.customer,24),
+      sortVal:r=>r.customer},
+    {label:'Station',   key:'station',     render:r=>`<span style="color:var(--tx2)">${S(r.station,16)}</span>`,
+      sortVal:r=>r.station},
+    {label:'Qty',       key:'qty',         align:'right',
+      render:r=>`<span style="${r.is_return?'color:#fca5a5':''}">${(+r.qty||0).toLocaleString('en-IN')}</span>`,
+      sortVal:r=>+r.qty||0},
+    {label:'Rate ₹',    key:'rate',        align:'right',
+      render:r=>`<span style="color:var(--tx2)">${r.rate?INR(r.rate):''}</span>`,
+      sortVal:r=>r.rate||0},
+    {label:'Value ₹',   key:'sales_value', align:'right',
+      render:r=>`<span style="${r.is_return?'color:#fca5a5':''}">${r.sales_value!==null?INR(r.sales_value):''}</span>`,
+      sortVal:r=>r.sales_value||0},
+    {label:'Type',      key:'is_return',
+      render:r=>r.is_return?'<span class="badge badge-red">Return</span>':'<span class="badge badge-green">Sale</span>',
+      sortVal:r=>r.is_return?1:0},
+  ];
+  const html=buildSortableTable('sales-ledger',SALE_COLS,[...FS],{
+    cap:500,
+    rowClass:r=>r.is_return?'ret-row':''
+  });
+  document.getElementById('sales-ledger-wrap').innerHTML=html;
+}
+
+function renderSales(){
+  // Monthly trend
+  const byMonth={};
+  for(const r of FS){
+    const mo=r.date?.slice(0,7)||'Unknown';
+    if(!byMonth[mo]) byMonth[mo]={s:0,r:0};
+    if(r.is_return) byMonth[mo].r+=Math.abs(+r.sales_value||0);
+    else byMonth[mo].s+=(+r.sales_value||0);
+  }
+  const months=Object.keys(byMonth).filter(m=>m!=='Unknown').sort();
+  const sVals=months.map(m=>byMonth[m].s);
+  const rVals=months.map(m=>byMonth[m].r);
+  const moLabels=months.map(m=>{try{const d=new Date(m+'-01');return d.toLocaleString('default',{month:'short',year:'2-digit'})}catch{return m}});
+
+  if(months.length){
+    Plotly.newPlot('ch-sa-trend',[
+      {x:moLabels,y:sVals,name:'Sales',type:'scatter',mode:'lines+markers',fill:'tozeroy',fillcolor:'rgba(0,196,154,.07)',line:{color:'#00c49a',width:2.5},marker:{size:5}},
+      {x:moLabels,y:rVals,name:'Returns',type:'scatter',mode:'lines+markers',line:{color:'#ef4444',width:1.5,dash:'dot'},marker:{size:4}}
+    ],mkL({showlegend:true,legend:{orientation:'h',x:0,y:-0.24,font:{size:10}},margin:{t:6,r:16,b:58,l:55}}),PCFG);
+  } else emptyChart('ch-sa-trend',230);
+
+  renderSaTopCust();
+  renderSalesTable();
+}
+
+// ─── PRODUCTS TAB ─────────────────────────────────────────────────────────────
+// Shared: compute product entries once, cache for chart redraws
+let _prodEntries=[];
+
+function computeProdEntries(){
+  const pm={};
+  const mths=salesMonths();
+  for(const r of FS){  // FS = globally filtered sales data
+    if(!r.product_name||isSkip(r.product_name)) continue;
+    if(!pm[r.product_name]) pm[r.product_name]={gross:0,net:0,units:0,ret:0,custs:new Set(),retAmt:0};
+    const sv=+r.sales_value||0;
+    if(r.is_return){pm[r.product_name].ret+=Math.abs(sv);pm[r.product_name].retAmt+=Math.abs(sv);pm[r.product_name].units+=(+r.qty||0);}
+    else{pm[r.product_name].gross+=sv;pm[r.product_name].units+=(+r.qty||0);pm[r.product_name].custs.add(r.customer);}
+    pm[r.product_name].net=pm[r.product_name].gross-pm[r.product_name].ret;
+  }
+  const invMap={};
+  for(const r of D.i.filter(r=>r.is_total)) invMap[r.product_name]=(+r.current_balance||0);
+  const qSold={};
+  for(const r of FS.filter(r=>!r.is_return)) qSold[r.product_name]=(qSold[r.product_name]||0)+(+r.qty||0);
+  _prodEntries=Object.entries(pm).map(([n,v])=>{
+    const retR=v.gross>0?v.retAmt/v.gross*100:0;
+    const qPerMo=(qSold[n]||0)/mths;
+    const bal=invMap[n]||0;
+    const cover=qPerMo>0?Math.round(bal/qPerMo):null;
+    return{name:n,...v,retR,custs:v.custs.size,cover};
+  });
+}
+
+function renderPrNet(){
+  const isDesc=CHART_SORT['pr-net']==='desc';
+  const data=_prodEntries.filter(e=>e.net>0).sort((a,b)=>isDesc?b.net-a.net:a.net-b.net).slice(0,12);
+  const disp=isDesc?[...data].reverse():data;
+  if(!disp.length){emptyChart('ch-pr-net',340);return;}
+  Plotly.newPlot('ch-pr-net',[{
+    x:disp.map(e=>e.net),y:disp.map(e=>S(e.name,26)),type:'bar',orientation:'h',
+    marker:{color:disp.map((_,i)=>`hsla(${158+i*14},58%,52%,.82)`)},
+    text:disp.map(e=>INR(e.net)),textposition:'outside',textfont:{size:10,color:'#8892a4'},
+    cliponaxis:false,hovertemplate:'%{y}<br>₹%{x:,.0f}<extra></extra>'
+  }],hbarL(200),PCFG);
+}
+
+function renderPrRet(){
+  const isDesc=CHART_SORT['pr-ret']==='desc';
+  const data=_prodEntries.filter(e=>e.gross>50000).sort((a,b)=>isDesc?b.retR-a.retR:a.retR-b.retR).slice(0,12);
+  const disp=isDesc?[...data].reverse():data;
+  if(!disp.length){emptyChart('ch-pr-ret',340);return;}
+  Plotly.newPlot('ch-pr-ret',[{
+    x:disp.map(e=>e.retR),y:disp.map(e=>S(e.name,26)),type:'bar',orientation:'h',
+    marker:{color:disp.map(e=>e.retR>15?'rgba(239,68,68,.8)':e.retR>10?'rgba(245,158,11,.8)':'rgba(16,185,129,.8)')},
+    text:disp.map(e=>e.retR.toFixed(1)+'%'),textposition:'outside',textfont:{size:10,color:'#8892a4'},
+    cliponaxis:false,hovertemplate:'%{y}<br>%{x:.1f}%<extra></extra>'
+  }],hbarL(200),PCFG);
+}
+
+function renderPrReach(){
+  const isDesc=CHART_SORT['pr-reach']==='desc';
+  const data=[..._prodEntries].sort((a,b)=>isDesc?b.custs-a.custs:a.custs-b.custs).slice(0,12);
+  const disp=isDesc?[...data].reverse():data;
+  if(!disp.length){emptyChart('ch-pr-reach',260);return;}
+  Plotly.newPlot('ch-pr-reach',[{
+    x:disp.map(e=>e.custs),y:disp.map(e=>S(e.name,26)),type:'bar',orientation:'h',
+    marker:{color:'rgba(139,92,246,.75)'},
+    text:disp.map(e=>e.custs+' custs'),textposition:'outside',textfont:{size:10,color:'#8892a4'},
+    cliponaxis:false,hovertemplate:'%{y}<br>%{x} customers<extra></extra>'
+  }],hbarL(200),PCFG);
+}
+
+function renderProductsTable(){
+  const PROD_COLS=[
+    {label:'Product',     key:'name',    render:r=>S(r.name,34), sortVal:r=>r.name},
+    {label:'Gross ₹',     key:'gross',   align:'right', render:r=>INR(r.gross), sortVal:r=>r.gross},
+    {label:'Net ₹',       key:'net',     align:'right',
+      render:r=>`<span style="color:var(--teal)">${INR(r.net)}</span>`, sortVal:r=>r.net},
+    {label:'Units',       key:'units',   align:'right',
+      render:r=>`<span style="color:var(--tx2)">${Math.abs(r.units).toLocaleString('en-IN')}</span>`, sortVal:r=>Math.abs(r.units)},
+    {label:'Return %',    key:'retR',    align:'right',
+      render:r=>`<span class="badge ${r.retR>15?'badge-red':r.retR>10?'badge-amber':'badge-green'}">${r.retR.toFixed(1)}%</span>`,
+      sortVal:r=>r.retR},
+    {label:'Customers',   key:'custs',   align:'right',
+      render:r=>`<span style="color:var(--tx2)">${r.custs}</span>`, sortVal:r=>r.custs},
+    {label:'Stock Cover', key:'cover',   align:'right',
+      render:r=>`<span style="color:var(--tx2)">${r.cover!==null?r.cover+'mo':'—'}</span>`,
+      sortVal:r=>r.cover!==null?r.cover:9999},
+  ];
+  document.getElementById('prod-table-wrap').innerHTML=
+    buildSortableTable('prod-table',PROD_COLS,_prodEntries);
+}
+
+function renderProducts(){
+  computeProdEntries();
+  renderPrNet();
+  renderPrRet();
+
+  // Monthly units top 5 (not sortable - time series)
+  const top5=_prodEntries.slice().sort((a,b)=>b.net-a.net).slice(0,5).map(e=>e.name);
+  const byMonth2={};
+  for(const r of FS.filter(r=>!r.is_return&&top5.includes(r.product_name))){
+    const mo=r.date?.slice(0,7)||'X';
+    if(!byMonth2[mo]) byMonth2[mo]={};
+    byMonth2[mo][r.product_name]=(byMonth2[mo][r.product_name]||0)+(+r.qty||0);
+  }
+  const months2=Object.keys(byMonth2).filter(m=>m!=='X').sort();
+  const moL2=months2.map(m=>{try{const d=new Date(m+'-01');return d.toLocaleString('default',{month:'short',year:'2-digit'})}catch{return m}});
+  const colors5=['#00c49a','#3b82f6','#f59e0b','#8b5cf6','#ec4899'];
+  if(months2.length&&top5.length){
+    Plotly.newPlot('ch-pr-units',top5.map((p,i)=>({
+      x:moL2,y:months2.map(m=>(byMonth2[m]||{})[p]||0),
+      name:S(p,20),type:'scatter',mode:'lines+markers',
+      line:{color:colors5[i],width:2},marker:{size:5,color:colors5[i]}
+    })),mkL({showlegend:true,legend:{orientation:'h',x:0,y:-0.26,font:{size:10}},yaxis:{...AXD,title:{text:'Units',font:{size:10}}}}),PCFG);
+  } else emptyChart('ch-pr-units',260);
+
+  renderPrReach();
+  renderProductsTable();
+}
+
+// ─── INVENTORY TAB ────────────────────────────────────────────────────────────
+let _invRows=[];
+
+function renderInvTop(){
+  const filtInv=getFilteredInv();
+  const prodBal={};
+  for(const r of filtInv){
+    prodBal[r.product_name]=(prodBal[r.product_name]||0)+(+r.current_balance||0);
+  }
+  const isDesc=CHART_SORT['inv-top']==='desc';
+  const sorted=Object.entries(prodBal).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const top10=isDesc?[...sorted].reverse():sorted;
+  if(!top10.length){emptyChart('ch-inv-top',230);return;}
+  Plotly.newPlot('ch-inv-top',[{
+    x:top10.map(e=>e[1]),y:top10.map(e=>S(e[0],24)),type:'bar',orientation:'h',
+    marker:{color:'rgba(139,92,246,.75)'},
+    text:top10.map(e=>Math.round(e[1]).toLocaleString()),textposition:'outside',textfont:{size:10,color:'#8892a4'},
+    cliponaxis:false,hovertemplate:'%{y}<br>%{x:,.0f} units<extra></extra>'
+  }],hbarL(180),PCFG);
+}
+
+function renderBatchTable(){
+  // Expiry sort value: expired=0, days left for rest, no date = 99999
+  const expirySort=r=>{
+    if(!r.expiry) return 99999;
+    const d=dLeft(r.expiry);
+    return d<0?-99999+d:d;
+  };
+  const BATCH_COLS=[
+    {label:'Product', key:'product_name', render:r=>S(r.product_name,34), sortVal:r=>r.product_name},
+    {label:'Batch',   key:'batch_no',
+      render:r=>`<span style="color:var(--tx2);font-family:var(--fm)">${r.batch_no}</span>`,
+      sortVal:r=>r.batch_no},
+    {label:'Units',   key:'current_balance', align:'right',
+      render:r=>`${(+r.current_balance||0).toFixed(0)}`, sortVal:r=>+r.current_balance||0},
+    {label:'Expiry',  key:'expiry',
+      render:r=>`<span style="color:var(--tx2)">${r.expiry||'—'}</span>`,
+      sortVal:expirySort},
+    {label:'Status',  key:'exp_status',
+      render:r=>expiryBadge(r.expiry), sortVal:expirySort},
+  ];
+  document.getElementById('batch-table-wrap').innerHTML=
+    buildSortableTable('batch-table',BATCH_COLS,_invRows);
+}
+
+function renderInventory(){
+  _invRows=getFilteredInv();
+  const inv=_invRows;
+
+  const exp_  =inv.filter(r=>r.expiry&&dLeft(r.expiry)<0);
+  const cr    =inv.filter(r=>r.expiry&&dLeft(r.expiry)>=0&&dLeft(r.expiry)<=90);
+  const wa    =inv.filter(r=>r.expiry&&dLeft(r.expiry)>90&&dLeft(r.expiry)<=180);
+  const sa    =inv.filter(r=>r.expiry&&dLeft(r.expiry)>180);
+  const nd    =inv.filter(r=>!r.expiry);
+  const su    =l=>l.reduce((s,r)=>s+(+r.current_balance||0),0);
+
+  const buckets=['Expired','≤90 days','90–180 days','Safe >180','No date'];
+  const units=[su(exp_),su(cr),su(wa),su(sa),su(nd)];
+
+  Plotly.newPlot('ch-inv-expiry',[{
+    x:buckets,y:units,type:'bar',
+    marker:{color:['#ef4444cc','#f97316cc','#f59e0bcc','#00c49acc','#3d4f60cc']},
+    text:units.map(v=>Math.round(v).toLocaleString()),
+    textposition:'outside',textfont:{size:10,color:'#8892a4'},cliponaxis:false,
+    hovertemplate:'%{x}<br>%{y:,.0f} units<extra></extra>'
+  }],mkL({margin:{t:10,r:16,b:50,l:55},yaxis:{...AXD,title:{text:'Units',font:{size:10}}}}),PCFG);
+
+  renderInvTop();
+
+  // Split panels
+  const bExp={};
+  for(const r of inv) if(r.batch_no) bExp[r.batch_no.replace(/\.$/,'').trim()]=r.expiry;
+  const nearSales=D.s.filter(r=>{
+    const exp2=bExp[(r.batch||'').replace(/\.$/,'').trim()];
+    return exp2&&dLeft(exp2)>=0&&dLeft(exp2)<=90;
+  });
+  const nearCusts=[...new Set(nearSales.map(r=>r.customer))];
+
+  document.getElementById('inv-split').innerHTML=`
+    <div class="inv-panel">
+      <div class="inv-panel-title">Your Current Stock</div>
+      ${[
+        {dot:'#ef4444',label:'Expired',val:Math.round(su(exp_))+' units ('+exp_.length+' batches)'},
+        {dot:'#f97316',label:'Expiring ≤90 days',val:Math.round(su(cr))+' units ('+cr.length+' batches)'},
+        {dot:'#f59e0b',label:'Expiring 90–180 days',val:Math.round(su(wa))+' units ('+wa.length+' batches)'},
+        {dot:'#00c49a',label:'Safe >180 days',val:Math.round(su(sa))+' units ('+sa.length+' batches)'},
+        {dot:'#3d4f60',label:'No expiry date',val:Math.round(su(nd))+' units ('+nd.length+' batches)'},
+      ].map(b=>`<div class="bucket-row"><div class="bucket-dot" style="background:${b.dot}"></div><div class="bucket-label">${b.label}</div><div class="bucket-val">${b.val}</div></div>`).join('')}
+    </div>
+    <div class="inv-panel">
+      <div class="inv-panel-title">Sold to Parties — Expiry Risk (≤90d)</div>
+      ${nearCusts.length?nearCusts.slice(0,12).map(c=>`<div class="bucket-row"><div class="bucket-dot" style="background:#ef4444"></div><div class="bucket-label">${S(c,28)}</div><div class="bucket-val"><span class="badge badge-red">≤90d</span></div></div>`).join('')+'<div style="font-size:10px;color:var(--tx3);margin-top:8px">'+nearCusts.length+' customer'+(nearCusts.length>1?'s':'')+' received near-expiry stock</div>':'<div style="color:var(--tx3);font-size:11px;padding:8px 0">No near-expiry stock at parties</div>'}
+    </div>`;
+
+  renderBatchTable();
+}
+
+// ─── RECEIVABLES TAB ──────────────────────────────────────────────────────────
+let _adjAR=[];
+
+function renderReTop(){
+  const FAR=getFilteredAR();
+  const isDesc=CHART_SORT['re-top']==='desc';
+  const sorted=FAR.filter(p=>p.state!=='over_returned'&&p.net>0).sort((a,b)=>b.net-a.net).slice(0,10);
+  const top10=isDesc?[...sorted].reverse():sorted;
+  if(!top10.length){emptyChart('ch-re-top',240);return;}
+  Plotly.newPlot('ch-re-top',[{
+    x:top10.map(p=>p.net),y:top10.map(p=>S(p.cust,22)),type:'bar',orientation:'h',
+    marker:{color:'rgba(245,158,11,.75)'},
+    text:top10.map(p=>INR(p.net)),textposition:'outside',textfont:{size:10,color:'#8892a4'},
+    cliponaxis:false,hovertemplate:'%{y}<br>₹%{x:,.0f}<extra></extra>'
+  }],hbarL(185),PCFG);
+}
+
+function renderARTable(tableId){
+  const secKey=tableId.replace('ar-','');
+  const FAR=getFilteredAR();
+  const parties=FAR.filter(p=>p.state===secKey);
+  // Flatten invoices
+  const flatRows=[];
+  for(const p of parties){
+    for(const inv of p.invs){
+      flatRows.push({...inv, cust:p.cust, state:p.state, excess:p.excess});
+    }
+  }
+  const isOR=secKey==='over_returned';
+  const AR_COLS=[
+    {label:'Vch No.', key:'voucher_no', render:r=>r.voucher_no||'—', sortVal:r=>r.voucher_no||''},
+    {label:'Date',    key:'date',       render:r=>`<span style="color:var(--tx2)">${r.date||''}</span>`, sortVal:r=>r.date||''},
+    {label:'Party',   key:'cust',       render:r=>S(r.cust,24), sortVal:r=>r.cust},
+    {label:'Original ₹', key:'net_amount', align:'right',
+      render:r=>INR(r.net_amount), sortVal:r=>+r.net_amount||0},
+    {label:'Returns ₹',  key:'ret_applied', align:'right',
+      render:r=>`<span style="color:var(--red)">${r.ret_applied>0?INR(r.ret_applied):''}</span>`,
+      sortVal:r=>+r.ret_applied||0},
+    {label:'Net Due ₹',  key:'adj_net', align:'right',
+      render:r=>`<span style="color:var(--amber)">${INR(r.adj_net)}</span>`,
+      sortVal:r=>+r.adj_net||0},
+    {label:'Age',    key:'age', render:r=>ageBadge(r.age), sortVal:r=>+r.age||0},
+    {label:'Status', key:'status',
+      render:r=>(isOR||r.cleared)?'<span class="badge badge-green">Cleared</span>':statusBadge(r.age),
+      sortVal:r=>+r.age||0},
+  ];
+  const wrap=document.getElementById('ar-tbl-'+secKey);
+  if(wrap) wrap.innerHTML=buildSortableTable('ar-'+secKey, AR_COLS, flatRows);
+}
+
+function renderReceivables(){
+  _adjAR=computeAdjAR();
+  const FAR=getFilteredAR();
+
+  // Aging donut — from filtered set
+  const ag={'0–30d':0,'31–60d':0,'61–90d':0,'91–180d':0,'>180d':0};
+  for(const p of FAR){
+    for(const inv of p.invs){
+      const a=inv.adj_net; const age=inv.age;
+      if(age<=30) ag['0–30d']+=a;
+      else if(age<=60) ag['31–60d']+=a;
+      else if(age<=90) ag['61–90d']+=a;
+      else if(age<=180) ag['91–180d']+=a;
+      else ag['>180d']+=a;
+    }
+  }
+  Plotly.newPlot('ch-re-aging',[{
+    labels:Object.keys(ag),values:Object.values(ag),type:'pie',hole:0.5,
+    marker:{colors:['#00c49a','#3b82f6','#f59e0b','#f97316','#ef4444']},
+    textinfo:'label+percent',textfont:{size:10},
+    hovertemplate:'%{label}<br>₹%{value:,.0f}<extra></extra>'
+  }],{...PL,margin:{t:10,r:10,b:10,l:10}},PCFG);
+
+  renderReTop();
+
+  // AR sections — from filtered set
+  const sections=[
+    {key:'over_returned',label:'Over-Returned',sub:'You owe these parties',cls:'badge-orange',hdBg:'rgba(249,115,22,.08)',
+     total:FAR.filter(p=>p.state==='over_returned').reduce((s,p)=>s+p.excess,0),
+     count:FAR.filter(p=>p.state==='over_returned').length},
+    {key:'partial',label:'Partial',sub:'Returns offset some invoices',cls:'badge-amber',hdBg:'rgba(245,158,11,.06)',
+     total:FAR.filter(p=>p.state==='partial').reduce((s,p)=>s+p.net,0),
+     count:FAR.filter(p=>p.state==='partial').length},
+    {key:'normal',label:'Normal',sub:'Full amount due',cls:'badge-blue',hdBg:'rgba(59,130,246,.06)',
+     total:FAR.filter(p=>p.state==='normal').reduce((s,p)=>s+p.net,0),
+     count:FAR.filter(p=>p.state==='normal').length},
+    {key:'cleared',label:'Cleared',sub:'Returns cover invoices',cls:'badge-green',hdBg:'rgba(16,185,129,.06)',
+     total:0,count:FAR.filter(p=>p.state==='cleared').length},
+  ];
+
+  let html='';
+  for(const sec of sections){
+    const parties=FAR.filter(p=>p.state===sec.key);
+    if(!parties.length) continue;
+    html+=`<div class="ar-section">
+      <div class="ar-section-hd" style="background:${sec.hdBg}">
+        <span class="badge ${sec.cls}">${sec.label}</span>
+        <span class="ars-count">${sec.count} part${sec.count>1?'ies':'y'} · ${sec.sub}</span>
+        <span class="ars-total" style="color:${sec.key==='over_returned'?'var(--orange)':sec.key==='cleared'?'var(--green)':'var(--amber)'}">${sec.key==='cleared'?'Settled':INR(sec.total)}</span>
+      </div>
+      <div class="ar-section-body">
+        <div class="tbl-wrap" id="ar-tbl-${sec.key}" style="border:none;max-height:340px;overflow-y:auto"></div>
+      </div>
+    </div>`;
+  }
+  document.getElementById('ar-sections').innerHTML=html||'<div style="color:var(--tx3);text-align:center;padding:40px">No data matches current filters</div>';
+  for(const sec of sections){
+    if(FAR.filter(p=>p.state===sec.key).length) renderARTable('ar-'+sec.key);
+  }
+}
+
+// ─── MSR ANALYTICS TAB ────────────────────────────────────────────────────────
+
+function renderMsrNet(){
+  const FME = getFilteredMsrEntries();
+  const isDesc = CHART_SORT['msr-net']==='desc';
+  // Sort desc first (highest→lowest); for hbar Plotly renders bottom→top so reverse = highest at top
+  const sorted = [...FME].sort((a,b)=>b.net-a.net);
+  const disp   = isDesc ? [...sorted].reverse() : sorted;
+  if(!disp.length){emptyChart('ch-msr-net',300);return;}
+  const colors = disp.map(e=>e.msr==='Unassigned'?'rgba(120,130,148,.45)':'rgba(0,196,154,.8)');
+  const lm = Math.max(160, Math.min(240, disp.reduce((m,e)=>Math.max(m,e.msr.length),0)*7));
+  Plotly.newPlot('ch-msr-net',[{
+    x:disp.map(e=>e.net), y:disp.map(e=>e.msr),
+    type:'bar', orientation:'h',
+    marker:{color:colors},
+    text:disp.map(e=>INR(e.net)),
+    textposition:'outside', textfont:{size:10,color:'#8892a4'},
+    cliponaxis:false, hovertemplate:'%{y}<br>Net: ₹%{x:,.0f}<extra></extra>'
+  }], msrHbarL(lm), PCFG);
+}
+
+function renderMsrRet(){
+  const FME = getFilteredMsrEntries().filter(e=>e.msr!=='Unassigned'&&e.gross>0);
+  const isDesc = CHART_SORT['msr-ret']==='desc';
+  const sorted = [...FME].sort((a,b)=>b.retR-a.retR);
+  const disp   = isDesc ? [...sorted].reverse() : sorted;
+  if(!disp.length){emptyChart('ch-msr-ret',300);return;}
+  const lm = Math.max(160, Math.min(240, disp.reduce((m,e)=>Math.max(m,e.msr.length),0)*7));
+  Plotly.newPlot('ch-msr-ret',[{
+    x:disp.map(e=>e.retR), y:disp.map(e=>e.msr),
+    type:'bar', orientation:'h',
+    marker:{color:disp.map(e=>e.retR>15?'rgba(239,68,68,.85)':e.retR>10?'rgba(245,158,11,.85)':'rgba(16,185,129,.8)')},
+    text:disp.map(e=>e.retR.toFixed(1)+'%'),
+    textposition:'outside', textfont:{size:10,color:'#8892a4'},
+    cliponaxis:false, hovertemplate:'%{y}<br>Return rate: %{x:.1f}%<extra></extra>'
+  }], msrHbarL(lm), PCFG);
+}
+
+function renderMsrParties(){
+  const FME = getFilteredMsrEntries().filter(e=>e.msr!=='Unassigned');
+  const isDesc = CHART_SORT['msr-parties']==='desc';
+  const sorted = [...FME].sort((a,b)=>b.parties-a.parties);
+  const disp   = isDesc ? [...sorted].reverse() : sorted;
+  if(!disp.length){emptyChart('ch-msr-parties',260);return;}
+  const lm = Math.max(160, Math.min(240, disp.reduce((m,e)=>Math.max(m,e.msr.length),0)*7));
+  Plotly.newPlot('ch-msr-parties',[{
+    x:disp.map(e=>e.parties), y:disp.map(e=>e.msr),
+    type:'bar', orientation:'h',
+    marker:{color:'rgba(139,92,246,.8)'},
+    text:disp.map(e=>e.parties+' parties'),
+    textposition:'outside', textfont:{size:10,color:'#8892a4'},
+    cliponaxis:false, hovertemplate:'%{y}<br>%{x} parties<extra></extra>'
+  }], msrHbarL(lm), PCFG);
+}
+
+function renderMsrTrend(){
+  const FME = getFilteredMsrEntries().filter(e=>e.msr!=='Unassigned');
+  // Top 5 MSRs by net sales
+  const top5 = [...FME].sort((a,b)=>b.net-a.net).slice(0,5);
+  if(!top5.length){emptyChart('ch-msr-trend',260);return;}
+
+  // Collect all months
+  const allMonths = [...new Set(top5.flatMap(e=>Object.keys(e.byMonth||{})))].filter(m=>m!=='Unknown').sort();
+  if(!allMonths.length){emptyChart('ch-msr-trend',260);return;}
+
+  const moLabels = allMonths.map(m=>{
+    try{const d=new Date(m+'-01');return d.toLocaleString('default',{month:'short',year:'2-digit'})}catch{return m}
+  });
+
+  const colors = ['#00c49a','#3b82f6','#f59e0b','#8b5cf6','#f97316'];
+  const traces = top5.map((e,i)=>({
+    x: moLabels,
+    y: allMonths.map(m=>e.byMonth[m]||0),
+    name: S(e.msr,18),
+    type:'scatter', mode:'lines+markers',
+    line:{color:colors[i],width:2},
+    marker:{size:4,color:colors[i]},
+    hovertemplate:'%{fullData.name}<br>%{x}: ₹%{y:,.0f}<extra></extra>'
+  }));
+
+  Plotly.newPlot('ch-msr-trend', traces, mkL({
+    showlegend:true,
+    legend:{orientation:'h',x:0,y:-0.28,font:{size:9}},
+    margin:{t:6,r:16,b:65,l:55}
+  }), PCFG);
+}
+
+function renderAbmCharts(){
+  const FME = getFilteredMsrEntries().filter(e=>e.msr!=='Unassigned');
+
+  // Recompute ABM entries from filtered MSR entries
+  const abmTotals = {};
+  const abmMsrNets = {};
+  for(const e of FME){
+    for(const {name:abm, share} of (ABM_MAP[e.msr]||[])){
+      if(!abmTotals[abm]) abmTotals[abm]={gross:0,ret:0,net:0};
+      abmTotals[abm].gross += e.gross * share;
+      abmTotals[abm].ret   += e.ret   * share;
+      abmTotals[abm].net   += e.net   * share;
+      if(!abmMsrNets[abm]) abmMsrNets[abm]={};
+      abmMsrNets[abm][e.msr] = (abmMsrNets[abm][e.msr]||0) + e.net * share;
+    }
+  }
+
+  const abmList = Object.entries(abmTotals).sort((a,b)=>b[1].net-a[1].net);
+  if(!abmList.length){emptyChart('ch-abm-net',260);emptyChart('ch-abm-stacked',260);return;}
+
+  // ABM net bar chart — sorted asc so highest appears at top of hbar
+  const abmListAsc = [...abmList].reverse(); // abmList is desc; reverse = asc for Plotly bottom-to-top
+  const abmNames = abmListAsc.map(([a])=>a);
+  const abmNets  = abmListAsc.map(([,v])=>v.net);
+  const abmLm = Math.max(160, Math.min(260, abmNames.reduce((m,n)=>Math.max(m,n.length),0)*7));
+  Plotly.newPlot('ch-abm-net',[{
+    x: abmNets, y: abmNames,
+    type:'bar', orientation:'h',
+    marker:{color:abmNets.map((_,i)=>`hsla(${195+i*25},55%,52%,.82)`)},
+    text: abmNets.map(v=>INR(v)),
+    textposition:'outside', textfont:{size:10,color:'#8892a4'},
+    cliponaxis:false, hovertemplate:'%{y}<br>₹%{x:,.0f}<extra></extra>'
+  }], msrHbarL(abmLm), PCFG);
+
+  // Stacked bar: MSR contribution per ABM
+  const allMsrs = [...new Set(FME.map(e=>e.msr))];
+  const msrColors = allMsrs.map((_,i)=>`hsla(${158+i*22},58%,52%,.82)`);
+
+  const stackedTraces = allMsrs.map((msr,i)=>({
+    name: S(msr,20),
+    x: abmNames.map(abm=>(abmMsrNets[abm]||{})[msr]||0),
+    y: abmNames,
+    type:'bar', orientation:'h',
+    marker:{color:msrColors[i]},
+    hovertemplate:`${S(msr,20)}<br>%{y}: ₹%{x:,.0f}<extra></extra>`
+  }));
+
+  Plotly.newPlot('ch-abm-stacked', stackedTraces, {
+    ...PL,
+    barmode:'stack',
+    margin:{t:10,r:90,b:55,l:abmLm},
+    xaxis:{...AXD,automargin:true},
+    yaxis:{...AXD,automargin:false,ticklen:0},
+    showlegend:true,
+    legend:{orientation:'h',x:0,y:-0.22,font:{size:9}}
+  }, PCFG);
+
+  // ABM summary cards
+  const abmCardsHtml = abmList.map(([abm,v])=>{
+    const msrCount = Object.keys(abmMsrNets[abm]||{}).length;
+    const retR = v.gross>0?(v.ret/v.gross*100):0;
+    return `<div class="msr-abm-card">
+      <div class="msr-abm-name">${S(abm,28)}</div>
+      <div class="msr-abm-meta">${msrCount} MSR${msrCount!==1?'s':''} · Return ${retR.toFixed(1)}%</div>
+      <div class="msr-abm-val">${INR(v.net)}</div>
+      <div class="msr-abm-sub">Gross ${INR(v.gross)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('abm-cards').innerHTML = abmCardsHtml || '<div style="color:var(--tx3);font-size:11px">No ABM data available</div>';
+}
+
+// ─── MSR ANALYTICS TAB ────────────────────────────────────────────────────────
+
+function renderMsrKpis(filtered){
+  const totalMsrs = filtered.filter(e=>e.msr!=='Unassigned').length;
+  const activeMsrs = filtered.filter(e=>e.msr!=='Unassigned'&&e.net>0).length;
+  const totalNet = filtered.reduce((s,e)=>s+e.net,0);
+  const totalGross = filtered.reduce((s,e)=>s+e.gross,0);
+  const totalRet = filtered.reduce((s,e)=>s+e.ret,0);
+  const retPct = totalGross>0?(totalRet/totalGross*100):0;
+  const unassignedEntry = filtered.find(e=>e.msr==='Unassigned');
+  const unassignedNet = unassignedEntry ? unassignedEntry.net : 0;
+  const topMsr = [...filtered].filter(e=>e.msr!=='Unassigned').sort((a,b)=>b.net-a.net)[0];
+
+  document.getElementById('kpi-msr').innerHTML=`
+    <div class="kpi"><div class="kpi-accent" style="background:var(--teal)"></div>
+      <div class="kpi-label">MSR Net Sales</div><div class="kpi-value">${INR(totalNet)}</div>
+      <div class="kpi-sub">Gross ${INR(totalGross)}</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--blue)"></div>
+      <div class="kpi-label">Active MSRs</div><div class="kpi-value">${activeMsrs}</div>
+      <div class="kpi-sub">${totalMsrs} mapped total</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--purple)"></div>
+      <div class="kpi-label">Top MSR</div>
+      <div class="kpi-value" style="font-size:14px;line-height:1.3">${topMsr?S(topMsr.msr,18):'—'}</div>
+      <div class="kpi-sub">${topMsr?INR(topMsr.net):''}</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--red)"></div>
+      <div class="kpi-label">MSR Return Rate</div><div class="kpi-value">${retPct.toFixed(1)}%</div>
+      <div class="kpi-sub neg">${INR(totalRet)} returned</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--amber)"></div>
+      <div class="kpi-label">Unassigned Sales</div><div class="kpi-value">${INR(unassignedNet)}</div>
+      <div class="kpi-sub">${unassignedNet>0?'No MSR mapped':'All parties mapped'}</div></div>
+    <div class="kpi"><div class="kpi-accent" style="background:var(--green)"></div>
+      <div class="kpi-label">ABMs Active</div><div class="kpi-value">${_abmEntries.filter(a=>a.net>0).length}</div>
+      <div class="kpi-sub">${ABM_NAMES.length} total ABMs</div></div>`;
+}
+
+
+function renderMsrTable(){
+  const filtered = getFilteredMsrEntries();
+  const MSR_COLS=[
+    {label:'MSR', key:'msr', render:r=>`<span style="${r.msr==='Unassigned'?'color:var(--tx3)':''}">${S(r.msr,24)}</span>`, sortVal:r=>r.msr},
+    {label:'ABM', key:'abms', render:r=>`<span style="color:var(--tx2)">${S(r.abms,24)}</span>`, sortVal:r=>r.abms},
+    {label:'State', key:'state', render:r=>`<span class="badge badge-gray">${r.state||'—'}</span>`, sortVal:r=>r.state||''},
+    {label:'Parties', key:'parties', align:'right',
+      render:r=>`<span style="color:var(--tx2)">${r.msr==='Unassigned'?'—':r.parties}</span>`, sortVal:r=>r.parties},
+    {label:'Gross ₹', key:'gross', align:'right',
+      render:r=>INR(r.gross), sortVal:r=>r.gross},
+    {label:'Returns ₹', key:'ret', align:'right',
+      render:r=>`<span style="color:var(--red)">${r.ret>0?INR(r.ret):'—'}</span>`, sortVal:r=>r.ret},
+    {label:'Net ₹', key:'net', align:'right',
+      render:r=>`<span style="color:var(--teal);font-weight:600">${INR(r.net)}</span>`, sortVal:r=>r.net},
+    {label:'Return %', key:'retR', align:'right',
+      render:r=>`<span class="badge ${r.retR>15?'badge-red':r.retR>10?'badge-amber':'badge-green'}">${r.retR.toFixed(1)}%</span>`,
+      sortVal:r=>r.retR},
+    {label:'Avg/Party', key:'avgParty', align:'right',
+      render:r=>`<span style="color:var(--tx2)">${r.parties>0?INR(r.net/r.parties):'—'}</span>`,
+      sortVal:r=>r.parties>0?r.net/r.parties:0},
+  ];
+  document.getElementById('msr-table-wrap').innerHTML =
+    buildSortableTable('msr-table', MSR_COLS, filtered, {cap:200});
+}
+
+function renderMsrUnassigned(){
+  // Find sales customers that have no MSR mapping
+  const allCustomers = [...new Set(FS.map(r=>r.customer).filter(Boolean))];
+  const unassigned = allCustomers.filter(c=>!MSR_MAP[c]&&!isSkip(c)).sort();
+  const el = document.getElementById('msr-unassigned-banner');
+  if(!unassigned.length){
+    el.innerHTML='';
+    return;
+  }
+  // Compute value for unassigned parties
+  const unassignedVal = FS.filter(r=>unassigned.includes(r.customer)&&!r.is_return)
+    .reduce((s,r)=>s+(+r.sales_value||0),0);
+  el.innerHTML=`<div class="unassigned-banner">
+    <div class="unassigned-icon">⚠️</div>
+    <div class="unassigned-body">
+      <div class="unassigned-title">${unassigned.length} Parties Without MSR Mapping — ${INR(unassignedVal)} in Sales</div>
+      <div class="unassigned-list">${unassigned.map(c=>`<span style="margin-right:12px">· ${c}</span>`).join('')}</div>
+    </div>
+  </div>`;
+}
+
+function renderMsr(){
+  // Recompute with current FS in case global filter changed since last visit
+  if(RAW.msr) computeMsrEntries(FS);
+  const filtered = getFilteredMsrEntries();
+
+  renderMsrKpis(filtered);
+  renderMsrUnassigned();
+  renderMsrNet();
+  renderMsrRet();
+  renderMsrTrend();
+  renderMsrParties();
+  renderAbmCharts();
+  renderMsrTable();
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────────
+// On page load: show choice screen. User picks auto-fetch or manual upload.
+window.addEventListener('load', () => showChoiceScreen());
+
+// ─── CHOICE SCREEN ────────────────────────────────────────────────────────────
+function showChoiceScreen(){
+  document.getElementById('choice-screen').style.display='flex';
+  document.getElementById('loading-screen').style.display='none';
+  document.getElementById('upload-screen').style.display='none';
+}
+
+function startAutoFetch(){
+  document.getElementById('choice-screen').style.display='none';
+  autoFetch();
+}
+
+function startManualUpload(){
+  document.getElementById('choice-screen').style.display='none';
+  document.getElementById('upload-screen').style.display='flex';
+}
+
+// ─── UPDATED resetAll: returns to choice screen instead of auto-fetching ──────
+// Overrides the original resetAll defined above
+const _originalResetAll = resetAll;
+// Patch resetAll to go to choice screen
+function resetAll(){
+  document.getElementById('topbar').style.display='none';
+  document.getElementById('nav').style.display='none';
+  document.getElementById('global-filter-bar').style.display='none';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  LOADED.sales=LOADED.inv=LOADED.out=LOADED.msr=false;
+  RAW.sales=RAW.inv=RAW.out=RAW.msr=null;
+  IF={expiry:'',prod:'',party:''};
+  RF={state:'',age:'',party:''};
+  MF={abm:'',msr:'',state:''};
+  MSR_MAP={}; ABM_MAP={}; MSR_NAMES=[]; ABM_NAMES=[]; _msrEntries=[]; _abmEntries=[];
+  ['sales','inv','out','msr'].forEach(t=>{
+    const sl=document.getElementById('slot-'+t);
+    if(sl) sl.classList.remove('loaded');
+    const st=document.getElementById('st-'+t);
+    if(st) st.textContent='Click to upload XLS file';
+  });
+  document.getElementById('nav-msr').style.display='none';
+  document.getElementById('launch-btn').disabled=true;
+  RENDERED.clear();
+  document.getElementById('load-bar').style.width='0%';
+  document.getElementById('load-error-msg').style.display='none';
+  document.getElementById('load-fallback-btn').style.display='none';
+  document.getElementById('load-back-btn').style.display='none';
+  ['sales','inv','out','msr'].forEach(t=>setStep(t,'',''));
+  const msrStep=document.getElementById('ls-msr');
+  if(msrStep) msrStep.style.display='';
+  // Go back to choice screen instead of auto-fetching
+  showChoiceScreen();
+}
+
+// ─── EXPORT ENGINE ────────────────────────────────────────────────────────────
+
+// Close all open export menus
+function closeExpMenus(){
+  document.querySelectorAll('.exp-menu.open').forEach(m=>m.classList.remove('open'));
+}
+
+// Toggle a specific export menu open/closed
+function toggleExpMenu(menuId){
+  const menu = document.getElementById(menuId);
+  if(!menu) return;
+  const wasOpen = menu.classList.contains('open');
+  closeExpMenus();
+  if(!wasOpen) menu.classList.add('open');
+}
+
+// Close menus when clicking elsewhere
+document.addEventListener('click', e => {
+  if(!e.target.closest('.exp-btn') && !e.target.closest('.exp-menu')){
+    closeExpMenus();
+  }
+});
+
+// ── Export a single Plotly chart as PNG ──────────────────────────────────────
+async function exportChartPng(chartId, filename){
+  const el = document.getElementById(chartId);
+  if(!el || !el._fullData) { alert('Chart not rendered yet.'); return; }
+  try {
+    const dataUrl = await Plotly.toImage(el, {
+      format:'png', width:900, height:500,
+      imageDataUrl: true
+    });
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = (filename||chartId) + '.png';
+    a.click();
+  } catch(e){ alert('Export failed: '+e.message); }
+}
+
+// ── Export a single Plotly chart as a single-slide PPT ───────────────────────
+async function exportChartPpt(chartId, title){
+  const el = document.getElementById(chartId);
+  if(!el || !el._fullData) { alert('Chart not rendered yet.'); return; }
+  try {
+    const dataUrl = await Plotly.toImage(el, {
+      format:'png', width:900, height:500, imageDataUrl:true
+    });
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE';
+    const slide = pptx.addSlide();
+    slide.background = { color:'07090F' };
+    slide.addText(title||'Chart', {
+      x:0.3, y:0.15, w:12, h:0.5,
+      fontSize:18, bold:true, color:'DDE3EE', fontFace:'Arial'
+    });
+    slide.addText('SD Pharmaceuticals — Sales Dashboard', {
+      x:0.3, y:0.62, w:12, h:0.3,
+      fontSize:9, color:'7A8899', fontFace:'Courier New'
+    });
+    // Strip the data:image/png;base64, prefix
+    const b64 = dataUrl.split(',')[1];
+    slide.addImage({ data:'image/png;base64,'+b64, x:0.3, y:1.0, w:12.8, h:6.2 });
+    await pptx.writeFile({ fileName: (title||'Chart').replace(/\s+/g,'_')+'.pptx' });
+  } catch(e){ alert('PPT export failed: '+e.message); }
+}
+
+// ── Export an entire page (all charts + KPIs + tables) as PNG via html2canvas ─
+async function exportPagePng(pageId, filename){
+  const el = document.getElementById(pageId);
+  if(!el) return;
+  // Temporarily remove overflow hidden so full page captures
+  const prev = el.style.overflow;
+  el.style.overflow = 'visible';
+  try {
+    const canvas = await html2canvas(el, {
+      backgroundColor: '#07090f',
+      scale: 1.5,
+      useCORS: true,
+      logging: false,
+      scrollX: 0, scrollY: -window.scrollY
+    });
+    el.style.overflow = prev;
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = (filename||pageId) + '.png';
+    a.click();
+  } catch(e){
+    el.style.overflow = prev;
+    alert('PNG export failed: '+e.message);
+  }
+}
+
+// ── Export entire page as PPT (all charts as individual slides + summary slide) ─
+async function exportPagePpt(pageId, pageTitle){
+  const el = document.getElementById(pageId);
+  if(!el) return;
+
+  // Collect all rendered Plotly chart divs on the page
+  const chartDivs = [...el.querySelectorAll('div[id^="ch-"]')].filter(d=>d._fullData);
+
+  if(!chartDivs.length){
+    alert('No rendered charts found on this page. Please visit the page first.');
+    return;
+  }
+
+  try {
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE';
+
+    // Slide 1: Page overview via html2canvas
+    const canvas = await html2canvas(el, {
+      backgroundColor:'#07090f', scale:1.2, useCORS:true,
+      logging:false, scrollX:0, scrollY:-window.scrollY
+    });
+    const overviewB64 = canvas.toDataURL('image/png').split(',')[1];
+    const slide0 = pptx.addSlide();
+    slide0.background = { color:'07090F' };
+    slide0.addText(pageTitle + ' — Full Page', {
+      x:0.3,y:0.15,w:12,h:0.5,fontSize:18,bold:true,color:'DDE3EE',fontFace:'Arial'
+    });
+    slide0.addText('SD Pharmaceuticals · Sales Dashboard · '+new Date().toLocaleDateString('en-IN'), {
+      x:0.3,y:0.62,w:12,h:0.3,fontSize:9,color:'7A8899',fontFace:'Courier New'
+    });
+    slide0.addImage({ data:'image/png;base64,'+overviewB64, x:0.3,y:1.0,w:12.8,h:6.2 });
+
+    // One slide per chart
+    for(const div of chartDivs){
+      const chartTitle = (()=>{
+        // Walk up to find chart-card-hd > chart-title text
+        let node = div.previousElementSibling;
+        while(node){
+          const t = node.querySelector?.('.chart-title');
+          if(t) return t.textContent.trim();
+          node = node.previousElementSibling;
+        }
+        return div.id;
+      })();
+      const imgUrl = await Plotly.toImage(div, {
+        format:'png', width:900, height:480, imageDataUrl:true
+      });
+      const b64 = imgUrl.split(',')[1];
+      const slide = pptx.addSlide();
+      slide.background = { color:'07090F' };
+      slide.addText(chartTitle, {
+        x:0.3,y:0.15,w:12,h:0.5,fontSize:16,bold:true,color:'DDE3EE',fontFace:'Arial'
+      });
+      slide.addText('SD Pharmaceuticals · '+pageTitle+' · '+new Date().toLocaleDateString('en-IN'), {
+        x:0.3,y:0.62,w:12,h:0.3,fontSize:9,color:'7A8899',fontFace:'Courier New'
+      });
+      slide.addImage({ data:'image/png;base64,'+b64, x:0.3,y:1.05,w:12.8,h:6.1 });
+    }
+
+    await pptx.writeFile({ fileName: pageTitle.replace(/\s+/g,'_')+'_Dashboard.pptx' });
+  } catch(e){ alert('PPT export failed: '+e.message); }
+}
+
+// ── Export a sortable table as Excel ─────────────────────────────────────────
+// tableId: the key used in TBL_SORT / the tableId param in buildSortableTable
+// Works by reading the rendered <table> from its wrapper element
+function exportTableExcel(tableId, filename){
+  // Map tableId → wrapper element id
+  const wrapMap = {
+    'sales-ledger': 'sales-ledger-wrap',
+    'prod-table':   'prod-table-wrap',
+    'batch-table':  'batch-table-wrap',
+    'msr-table':    'msr-table-wrap',
+  };
+  const wrapId = wrapMap[tableId];
+  const wrap = wrapId ? document.getElementById(wrapId) : null;
+  const tbl  = wrap ? wrap.querySelector('table') : null;
+  if(!tbl){ alert('Table not rendered yet. Please visit this tab first.'); return; }
+
+  try {
+    const ws = XLSX.utils.table_to_sheet(tbl);
+    // Strip ₹ symbol and clean up badge text from cells
+    const range = XLSX.utils.decode_range(ws['!ref']||'A1');
+    for(let r=range.s.r; r<=range.e.r; r++){
+      for(let c=range.s.c; c<=range.e.c; c++){
+        const addr = XLSX.utils.encode_cell({r,c});
+        const cell = ws[addr];
+        if(cell && cell.t==='s'){
+          cell.v = cell.v.replace(/[₹,]/g,'').trim();
+        }
+      }
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, filename||tableId);
+    XLSX.writeFile(wb, (filename||tableId)+'.xlsx');
+  } catch(e){ alert('Excel export failed: '+e.message); }
+}
+
+// ── Special: export full Receivables AR data as Excel (all 4 sections) ───────
+function exportReceivablesExcel(){
+  const FAR = getFilteredAR();
+  if(!FAR.length){ alert('No receivables data available.'); return; }
+  // Flatten all invoices with section label
+  const rows = [];
+  for(const p of FAR){
+    for(const inv of p.invs){
+      rows.push({
+        'Party': p.cust,
+        'State': p.state,
+        'Vch No.': inv.voucher_no||'',
+        'Date': inv.date||'',
+        'Original ₹': +inv.net_amount||0,
+        'Returns Applied ₹': +inv.ret_applied||0,
+        'Net Due ₹': +inv.adj_net||0,
+        'Age (days)': inv.age||0,
+        'Cleared': inv.cleared ? 'Yes' : 'No'
+      });
+    }
+  }
+  try {
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Receivables_AR');
+    XLSX.writeFile(wb, 'SD_Receivables_AR.xlsx');
+  } catch(e){ alert('Excel export failed: '+e.message); }
+}
+</script>
+</body>
+</html>
