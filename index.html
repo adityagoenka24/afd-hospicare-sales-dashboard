@@ -1125,11 +1125,15 @@ function cleanOutstanding(raw){
     const pn=String(r['party_name']||'').trim();
     const amt=parseMoney(r['net_amount']);
     if(!pn||amt===null||amt===0) continue;
+    const vno=String(r['voucher_no']||'').trim();
+    // SzA vouchers are credit notes — store as negative so they reduce receivables
+    const isCreditNote = vno.toUpperCase().startsWith('SZA');
     out.push({
-      voucher_no:String(r['voucher_no']||'').trim(),
+      voucher_no:vno,
       date:parseDate(r['date']),
       party_name:pn,
-      net_amount:amt
+      net_amount: isCreditNote ? -Math.abs(amt) : Math.abs(amt),
+      is_credit_note: isCreditNote
     });
   }
   return out;
@@ -1161,19 +1165,38 @@ function computeAdjAR(){
   };
   const pts=[];
   for(const [cust,invs] of Object.entries(grp)){
-    const p=poolLookup(cust);
-    const orig=invs.reduce((s,r)=>s+(+r.net_amount||0),0);
+    // Credit notes (SzA) have negative net_amount — sum separately
+    const creditNoteTotal = invs.filter(r=>r.is_credit_note).reduce((s,r)=>s+Math.abs(+r.net_amount||0),0);
+    const invoiceInvs = invs.filter(r=>!r.is_credit_note);
+    // Start pool with credit notes already applied (they reduce what's owed)
+    let p = Math.max(0, poolLookup(cust) + creditNoteTotal);
+    const orig=invoiceInvs.reduce((s,r)=>s+Math.max(0,+r.net_amount||0),0);
     const net=orig-Math.min(p,orig);
     const exc=Math.max(0,p-orig);
     const state=p===0?'normal':exc>0?'over_returned':net===0?'cleared':'partial';
-    let rem=p;
-    const invd=invs
-      .sort((a,b)=>(a.date||'').localeCompare(b.date||''))
-      .map(inv=>{
-        const o=+inv.net_amount||0,a=Math.min(rem,o);
-        rem-=a;
-        return{...inv,ret_applied:a,adj_net:Math.max(0,o-a),age:dAgo(inv.date),cleared:a>=o};
-      });
+    let rem=Math.max(0,poolLookup(cust)+creditNoteTotal);
+    // Map invoice rows first (apply pool against them oldest-first)
+    const invd=[
+      ...invoiceInvs
+        .sort((a,b)=>(a.date||'').localeCompare(b.date||''))
+        .map(inv=>{
+          const o=Math.max(0,+inv.net_amount||0),a=Math.min(rem,o);
+          rem-=a;
+          return{...inv,ret_applied:a,adj_net:Math.max(0,o-a),age:dAgo(inv.date),cleared:a>=o};
+        }),
+      // Append credit note rows — shown in Returns column as negative (red), adj_net=0
+      ...invs.filter(r=>r.is_credit_note)
+        .sort((a,b)=>(a.date||'').localeCompare(b.date||''))
+        .map(inv=>({
+          ...inv,
+          net_amount:0,           // don't show in Original column
+          ret_applied:Math.abs(+inv.net_amount||0),  // show credit amount in Returns
+          adj_net:0,
+          age:dAgo(inv.date),
+          cleared:true,
+          is_credit_note:true
+        }))
+    ];
     // Store display name as the original (pre-lowercase) party base name
     const displayCust=invs[0].party_name.split(',')[0].trim();
     pts.push({cust:displayCust,party_name:invs[0].party_name,state,orig,returns:p,net,excess:exc,invs:invd});
@@ -2152,20 +2175,25 @@ function renderARTable(tableId){
   }
   const isOR=secKey==='over_returned';
   const AR_COLS=[
-    {label:'Vch No.', key:'voucher_no', render:r=>r.voucher_no||'—', sortVal:r=>r.voucher_no||''},
+    {label:'Vch No.', key:'voucher_no',
+      render:r=>`<span style="color:${r.is_credit_note?'var(--red)':'inherit'}">${r.voucher_no||'—'}</span>`,
+      sortVal:r=>r.voucher_no||''},
     {label:'Date',    key:'date',       render:r=>`<span style="color:var(--tx2)">${r.date||''}</span>`, sortVal:r=>r.date||''},
     {label:'Party',   key:'cust',       render:r=>S(r.cust,24), sortVal:r=>r.cust},
     {label:'Original ₹', key:'net_amount', align:'right',
-      render:r=>INR(r.net_amount), sortVal:r=>+r.net_amount||0},
+      render:r=>r.is_credit_note?'<span style="color:var(--tx3)">—</span>':INR(r.net_amount),
+      sortVal:r=>+r.net_amount||0},
     {label:'Returns ₹',  key:'ret_applied', align:'right',
       render:r=>`<span style="color:var(--red)">${r.ret_applied>0?INR(r.ret_applied):''}</span>`,
       sortVal:r=>+r.ret_applied||0},
     {label:'Net Due ₹',  key:'adj_net', align:'right',
-      render:r=>`<span style="color:var(--amber)">${INR(r.adj_net)}</span>`,
+      render:r=>`<span style="color:var(--amber)">${r.is_credit_note?'—':INR(r.adj_net)}</span>`,
       sortVal:r=>+r.adj_net||0},
     {label:'Age',    key:'age', render:r=>ageBadge(r.age), sortVal:r=>+r.age||0},
     {label:'Status', key:'status',
-      render:r=>(isOR||r.cleared)?'<span class="badge badge-green">Cleared</span>':statusBadge(r.age),
+      render:r=>r.is_credit_note
+        ?'<span class="badge" style="background:rgba(239,68,68,.15);color:var(--red)">Credit Note</span>'
+        :(isOR||r.cleared)?'<span class="badge badge-green">Cleared</span>':statusBadge(r.age),
       sortVal:r=>+r.age||0},
   ];
   const wrap=document.getElementById('ar-tbl-'+secKey);
