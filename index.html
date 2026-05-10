@@ -839,7 +839,8 @@ function cleanMSR(raw, map) {
     const custKey = sale.customer.trim().toUpperCase();
     const entry = lookup.get(custKey);
     if (!entry || !entry.msrs.length) continue;
-    // Create one row per MSR assigned to this customer
+    // Split value equally across all MSRs for this customer (so sum = original sale)
+    const msrShare = entry.msrs.length;
     for (const msr of entry.msrs) {
       if (!msr) continue;
       out.push({
@@ -851,8 +852,8 @@ function cleanMSR(raw, map) {
         state: entry.state,
         date: sale.date,
         date_str: sale.date_str,
-        sales_value: sale.sales_value,
-        qty: sale.qty,
+        sales_value: sale.sales_value / msrShare,  // divided by N MSRs → sum = original
+        qty: sale.qty / msrShare,
         is_return: sale.is_return,
         bill_no: sale.bill_no,
       });
